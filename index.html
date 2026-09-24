@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <meta name="theme-color" content="#1E3A8A">
 <title>سازو داربست</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <link href="https://cdn.jsdelivr.net/gh/rastikerdar/vazirmatn@v33.003/Vazirmatn-font-face.css" rel="stylesheet">
 <style>
 :root{
@@ -891,6 +892,180 @@ onclick="showMapHelp()">❓</button>
 </div>
 <div class="toast" id="toast"></div>
 </div>
+
+<script>
+/* ═══════════════════════════════════════════════════════
+   اتصال به Supabase
+   ═══════════════════════════════════════════════════════ */
+window.SAZO_SUPABASE_URL = "https://xruqejsaprromvvooqwg.supabase.co";
+window.SAZO_SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhydXFlanNhcHJyb212dm9vcXdnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAyNjcyMjYsImV4cCI6MjEwNTg0MzIyNn0.-Ip3XBgLMs2v1MoPOpOvNKKhVhSv1KgnBN458eE9XHo";
+
+window.supabaseClient = null;
+try {
+    window.supabaseClient = window.supabase.createClient(
+        window.SAZO_SUPABASE_URL,
+        window.SAZO_SUPABASE_KEY
+    );
+    console.log('✅ اتصال به Supabase برقرار شد');
+} catch (e) {
+    console.error('❌ خطا در اتصال Supabase:', e);
+}
+
+/* ─── توابع کمکی Supabase ─── */
+window.db = {
+    /* ذخیره پروفایل در دیتابیس */
+    saveProfile: async function(user) {
+        if(!window.supabaseClient || !user.id) return null;
+        try {
+            var { data, error } = await window.supabaseClient
+                .from('profiles')
+                .upsert({
+                    id: user.id,
+                    name: user.name,
+                    phone: user.phone,
+                    role: user.role,
+                    identity_type: user.identity || 'iranian',
+                    verified: user.verified || false,
+                    online: user.online || false,
+                    invite_code: user.inviteCode,
+                    invited_by: user.invitedBy,
+                    wallet_balance: S.wallet.balance || 5000000,
+                    base_location: user.baseLocation || {},
+                    worker_profile: user.workerProfile || {},
+                    company_profile: user.companyProfile || {}
+                }, { onConflict: 'id' });
+            if(error) console.warn('saveProfile:', error);
+            return data;
+        } catch(e) { console.warn('saveProfile err:', e); return null; }
+    },
+
+    /* گرفتن پروفایل از دیتابیس */
+    getProfile: async function(userId) {
+        if(!window.supabaseClient) return null;
+        try {
+            var { data, error } = await window.supabaseClient
+                .from('profiles')
+                .select('*')
+                .eq('id', userId)
+                .single();
+            if(error) return null;
+            return data;
+        } catch(e) { return null; }
+    },
+
+    /* آپدیت فیلدهای مشخص */
+    updateProfile: async function(userId, fields) {
+        if(!window.supabaseClient || !userId) return null;
+        try {
+            var { data, error } = await window.supabaseClient
+                .from('profiles')
+                .update(fields)
+                .eq('id', userId);
+            return data;
+        } catch(e) { return null; }
+    },
+
+    /* لیست شرکت‌ها */
+    getCompanies: async function() {
+        if(!window.supabaseClient) return null;
+        try {
+            var { data, error } = await window.supabaseClient
+                .from('companies')
+                .select('*')
+                .order('created_at', { ascending: false });
+            return data || [];
+        } catch(e) { return []; }
+    },
+
+    /* ثبت شرکت */
+    addCompany: async function(company) {
+        if(!window.supabaseClient) return null;
+        try {
+            var { data, error } = await window.supabaseClient
+                .from('companies')
+                .insert(company)
+                .select()
+                .single();
+            return data;
+        } catch(e) { return null; }
+    },
+
+    /* لیست کارگرها */
+    getWorkers: async function() {
+        if(!window.supabaseClient) return null;
+        try {
+            var { data, error } = await window.supabaseClient
+                .from('workers')
+                .select('*')
+                .order('created_at', { ascending: false });
+            return data || [];
+        } catch(e) { return []; }
+    },
+
+    /* ثبت کارگر */
+    addWorker: async function(worker) {
+        if(!window.supabaseClient) return null;
+        try {
+            var { data, error } = await window.supabaseClient
+                .from('workers')
+                .insert(worker)
+                .select()
+                .single();
+            return data;
+        } catch(e) { return null; }
+    },
+
+    /* لیست فروشنده‌ها */
+    getSellers: async function() {
+        if(!window.supabaseClient) return null;
+        try {
+            var { data, error } = await window.supabaseClient
+                .from('sellers')
+                .select('*')
+                .order('created_at', { ascending: false });
+            return data || [];
+        } catch(e) { return []; }
+    },
+
+    /* ثبت فروشنده */
+    addSeller: async function(seller) {
+        if(!window.supabaseClient) return null;
+        try {
+            var { data, error } = await window.supabaseClient
+                .from('sellers')
+                .insert(seller)
+                .select()
+                .single();
+            return data;
+        } catch(e) { return null; }
+    },
+
+    /* ثبت تراکنش */
+    addTransaction: async function(tx) {
+        if(!window.supabaseClient) return null;
+        try {
+            var { data, error } = await window.supabaseClient
+                .from('transactions')
+                .insert(tx);
+            return data;
+        } catch(e) { return null; }
+    },
+
+    /* ثبت معامله */
+    addDeal: async function(deal) {
+        if(!window.supabaseClient) return null;
+        try {
+            var { data, error } = await window.supabaseClient
+                .from('deals')
+                .insert(deal);
+            return data;
+        } catch(e) { return null; }
+    }
+};
+
+console.log('[SAZO-SUPABASE] helpers loaded');
+</script>
+
 <script>
 window.SAZO_CORE = {
 version: '1.0.0',
