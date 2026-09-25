@@ -76,10 +76,12 @@ border-right:.15rem solid var(--primary3)}
 .pinput select{padding:.85rem;border:.1rem solid var(--border);border-radius:.7rem;
 font-size:.85rem;font-weight:700;background:var(--card2)}
 
-.otp{display:flex;gap:.4rem;justify-content:center;margin:1rem 0;flex-wrap:wrap}
+.otp{display:flex;gap:.4rem;justify-content:center;margin:1rem 0;flex-wrap:wrap;direction:ltr}
 .otp input{width:2.7rem;height:3.4rem;text-align:center;font-size:1.3rem;font-weight:900;
-border:.1rem solid var(--border);border-radius:.65rem;background:var(--card)}
+border:.1rem solid var(--border);border-radius:.65rem;background:var(--card);
+direction:ltr;-webkit-appearance:none;appearance:none}
 .otp input.filled{border-color:var(--primary3);background:var(--plight);color:var(--primary)}
+.otp input:focus{outline:none;border-color:var(--primary3);box-shadow:0 0 0 3px rgba(37,99,235,.15)}
 
 .idcards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.4rem;margin:.8rem 0}
 .idcard{background:var(--card);border:.1rem solid var(--border);border-radius:.65rem;
@@ -665,12 +667,12 @@ style="text-align:center;direction:ltr;font-family:monospace">
 <p id="otpDisplay">کد فرستاده شد</p>
 </div>
 <div class="otp">
-<input type="tel" maxlength="1" id="otp1" inputmode="numeric" pattern="[0-9]*" oninput="otpNext(1)" onkeydown="otpBack(1, event)">
-<input type="tel" maxlength="1" id="otp2" inputmode="numeric" pattern="[0-9]*" oninput="otpNext(2)" onkeydown="otpBack(2, event)">
-<input type="tel" maxlength="1" id="otp3" inputmode="numeric" pattern="[0-9]*" oninput="otpNext(3)" onkeydown="otpBack(3, event)">
-<input type="tel" maxlength="1" id="otp4" inputmode="numeric" pattern="[0-9]*" oninput="otpNext(4)" onkeydown="otpBack(4, event)">
-<input type="tel" maxlength="1" id="otp5" inputmode="numeric" pattern="[0-9]*" oninput="otpNext(5)" onkeydown="otpBack(5, event)">
-<input type="tel" maxlength="1" id="otp6" inputmode="numeric" pattern="[0-9]*" oninput="otpNext(6)" onkeydown="otpBack(6, event)">
+<input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" id="otp1" dir="ltr" oninput="otpNext(1)" onkeydown="otpBack(1, event)" autocomplete="one-time-code">
+<input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" id="otp2" dir="ltr" oninput="otpNext(2)" onkeydown="otpBack(2, event)" autocomplete="one-time-code">
+<input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" id="otp3" dir="ltr" oninput="otpNext(3)" onkeydown="otpBack(3, event)" autocomplete="one-time-code">
+<input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" id="otp4" dir="ltr" oninput="otpNext(4)" onkeydown="otpBack(4, event)" autocomplete="one-time-code">
+<input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" id="otp5" dir="ltr" oninput="otpNext(5)" onkeydown="otpBack(5, event)" autocomplete="one-time-code">
+<input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" id="otp6" dir="ltr" oninput="otpNext(6)" onkeydown="otpBack(6, event)" autocomplete="one-time-code">
 </div>
 <div class="gbox">
 <div class="it">فقط روی تایید بزن — کد خودکار پر شده</div>
@@ -1960,58 +1962,9 @@ window.sendOTP = async function(){
     }
 };
 window.resendOTP = function(){ toast('✅ کد مجدد فرستاده شد'); speak('کد مجدد فرستاده شد'); };
-window.otpNext = function(n){
-    var el = document.getElementById('otp' + n);
-    if(!el) return;
-    if(el.value && el.value.length >= 1){
-        el.classList.add('filled'); el.dispatchEvent(new Event('input'));
-        if(n < 6){ var nx = document.getElementById('otp' + (n+1)); if(nx) nx.focus(); }
-        else { el.blur(); }
-    } else {
-        el.classList.remove('filled');
-    }
-};
-window.otpBack = function(n, event){
-    if(event && event.key === 'Backspace' && !event.target.value && n > 1){
-        var prev = document.getElementById('otp' + (n-1));
-        if(prev){ prev.focus(); prev.value = ''; prev.classList.remove('filled'); }
-    }
-};
-window.verifyOTP = async function(){
-    var code = '';
-    for(var i = 1; i <= 6; i++){ 
-        var el = document.getElementById('otp' + i); 
-        if(el){ el.classList.add('filled'); el.dispatchEvent(new Event('input')); code += el.value; }
-    }
-    if(code.length < 6){ toast('⚠️ کد کامل نیست'); return; }
-    var phone = S.user.phone || '';
-    var cleanPhone = phone.replace(/\D/g, '');
-    if(cleanPhone.startsWith('98') && cleanPhone.length === 12) cleanPhone = '0' + cleanPhone.slice(2);
-    if(cleanPhone.startsWith('9') && cleanPhone.length === 10) cleanPhone = '0' + cleanPhone;
-    if(!/^09\d{9}$/.test(cleanPhone)){ toast('⚠️ شماره نامعتبر: ' + phone); return; }
-    S.user.phone = cleanPhone;
-    console.log('Verify:', cleanPhone, code);
-    try {
-        var resp = await fetch('https://xruqejsaprromvvooqwg.supabase.co/functions/v1/verify-otp', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ phone: cleanPhone, code: code })
-        });
-        var data = await resp.json();
-        console.log('Verify response:', data);
-        if(!data.success){ toast('❌ ' + (data.error || 'کد نامعتبر')); return; }
-        showScreen('identity');
-        var ih = document.getElementById('idHead');
-        if(ih){
-            var regSteps = [{ icon:'🎭', label:'نقش' },{ icon:'📱', label:'موبایل' },{ icon:'🔢', label:'کد' },{ icon:'🪪', label:'هویت' },{ icon:'💳', label:'بانک' }];
-            if(!ih.querySelector('.progress-steps')) ih.insertAdjacentHTML('afterbegin', renderProgress(regSteps, 3));
-        }
-        toast('✅ تایید شد');
-    } catch(e) {
-        console.error('verifyOTP error:', e);
-        toast('❌ خطا در اتصال');
-    }
-};
+
+
+
 window.selID = function(el, type){
 document.querySelectorAll('.idcard').forEach(function(c){ c.classList.remove('selected'); });
 el.classList.add('selected');
@@ -5084,6 +5037,102 @@ return r;
 };
 console.log('[SAZO] Final ready');
 console.log('[SAZO] برای تست: testSazo()');
+window.otpNext = function(n){
+    var el = document.getElementById('otp' + n);
+    if(!el) return;
+    var val = el.value.replace(/\D/g, '');
+    if(val.length > 1){
+        // کاربر کد رو paste کرده
+        var digits = val.split('');
+        for(var j = 0; j < 6; j++){
+            var e = document.getElementById('otp' + (j+1));
+            if(e && digits[j]){
+                e.value = digits[j];
+                e.classList.add('filled');
+            }
+        }
+        el.value = digits[0] || '';
+        var last = document.getElementById('otp6');
+        if(last) last.focus();
+        return;
+    }
+    el.value = val;
+    if(val.length >= 1){
+        el.classList.add('filled');
+        if(n < 6){
+            var nx = document.getElementById('otp' + (n+1));
+            if(nx) nx.focus();
+        } else {
+            el.blur();
+        }
+    } else {
+        el.classList.remove('filled');
+    }
+};
+
+window.otpBack = function(n, event){
+    if(event && event.key === 'Backspace' && !event.target.value && n > 1){
+        var prev = document.getElementById('otp' + (n-1));
+        if(prev){ prev.focus(); prev.value = ''; prev.classList.remove('filled'); }
+    }
+};
+
+// پشتیبانی از paste
+document.addEventListener('DOMContentLoaded', function(){
+    for(var i = 1; i <= 6; i++){
+        var el = document.getElementById('otp' + i);
+        if(el){
+            el.addEventListener('paste', function(e){
+                e.preventDefault();
+                var paste = (e.clipboardData || window.clipboardData).getData('text');
+                var digits = paste.replace(/\D/g, '').split('');
+                for(var j = 0; j < 6 && j < digits.length; j++){
+                    var inp = document.getElementById('otp' + (j+1));
+                    if(inp){ inp.value = digits[j]; inp.classList.add('filled'); }
+                }
+                if(digits.length === 6){
+                    var last = document.getElementById('otp6');
+                    if(last) last.focus();
+                }
+            });
+        }
+    }
+});
+window.verifyOTP = async function(){
+    var code = '';
+    for(var i = 1; i <= 6; i++){ 
+        var el = document.getElementById('otp' + i); 
+        if(el){ el.classList.add('filled'); code += el.value; }
+    }
+    if(code.length < 6){ toast('⚠️ کد کامل نیست — ' + code.length + ' رقم'); return; }
+    var phone = S.user.phone || '';
+    var cleanPhone = phone.replace(/\D/g, '');
+    if(cleanPhone.startsWith('98') && cleanPhone.length === 12) cleanPhone = '0' + cleanPhone.slice(2);
+    if(cleanPhone.startsWith('9') && cleanPhone.length === 10) cleanPhone = '0' + cleanPhone;
+    if(!/^09\d{9}$/.test(cleanPhone)){ toast('⚠️ شماره نامعتبر'); return; }
+    S.user.phone = cleanPhone;
+    console.log('Verify: phone=' + cleanPhone + ' code=' + code);
+    try {
+        var resp = await fetch('https://xruqejsaprromvvooqwg.supabase.co/functions/v1/verify-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone: cleanPhone, code: code })
+        });
+        var data = await resp.json();
+        console.log('Verify response:', data);
+        if(!data.success){ toast('❌ ' + (data.error || 'کد نامعتبر')); return; }
+        showScreen('identity');
+        var ih = document.getElementById('idHead');
+        if(ih){
+            var regSteps = [{ icon:'🎭', label:'نقش' },{ icon:'📱', label:'موبایل' },{ icon:'🔢', label:'کد' },{ icon:'🪪', label:'هویت' },{ icon:'💳', label:'بانک' }];
+            if(!ih.querySelector('.progress-steps')) ih.insertAdjacentHTML('afterbegin', renderProgress(regSteps, 3));
+        }
+        toast('✅ تایید شد');
+    } catch(e) {
+        console.error('verifyOTP error:', e);
+        toast('❌ خطا در اتصال');
+    }
+};
 </script>
 </body>
 </html>
