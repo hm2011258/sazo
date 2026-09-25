@@ -673,7 +673,6 @@ style="text-align:center;direction:ltr;font-family:monospace">
 <input type="tel" maxlength="1" id="otp6" inputmode="numeric" pattern="[0-9]*" oninput="otpNext(6)" onkeydown="otpBack(6, event)">
 </div>
 <div class="gbox">
-<h4>🎭 حالت دمو</h4>
 <div class="it">فقط روی تایید بزن — کد خودکار پر شده</div>
 </div>
 <button class="abtn" onclick="verifyOTP()">
@@ -3903,7 +3902,6 @@ return '<div class="chip" onclick="document.getElementById(\'chargeAmt\').value=
 }).join('') + '</div>' +
 '<div class="gbox"><h4>💡 نکته</h4>' +
 '<div class="it">حداقل شارژ: ۱۰۰,۰۰۰ تومان</div>' +
-'<div class="it">در حالت دمو، پرداخت واقعی انجام نمی‌شه</div></div>' +
 '<button class="btn bp" onclick="doCharge()"><span class="ico-lb">💳</span><span>شارژ</span></button>');
 };
 window.doCharge = function(){
@@ -3941,7 +3939,6 @@ setTimeout(function(){
 showSheet('<button class="cbtn" onclick="closeModal()">✕</button><div class="stitle">🔐 تایید دو مرحله‌ای</div>' +
 '<div class="gbox"><h4>💰 برداشت باالی ۱ میلیون</h4>' +
 '<div class="it">کد پیامک شد به ' + (S.user.phone || 'شماره شما') + '</div>' +
-'<div class="it" style="color:var(--warning);font-weight:900">🎭 کد دمو: ' + code + '</div></div>' +
 '<div class="fgroup"><label class="flabel">کد ۴ رقمی</label>' +
 '<input class="finput" id="2faCode" maxlength="4" style="text-align:center;font-size:1.3rem;letter-spacing:.4rem;direction:ltr"></div>' +
 '<button class="btn bp" onclick="verify2FA(' + a + ')"><span class="ico-lb">✅</span><span>تایید و برداشت</span></button>');
