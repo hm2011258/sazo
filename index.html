@@ -665,12 +665,12 @@ style="text-align:center;direction:ltr;font-family:monospace">
 <p id="otpDisplay">کد فرستاده شد</p>
 </div>
 <div class="otp">
-<input type="tel" maxlength="1" id="otp1" oninput="otpNext(1)">
-<input type="tel" maxlength="1" id="otp2" oninput="otpNext(2)">
-<input type="tel" maxlength="1" id="otp3" oninput="otpNext(3)">
-<input type="tel" maxlength="1" id="otp4" oninput="otpNext(4)">
-<input type="tel" maxlength="1" id="otp5" oninput="otpNext(5)">
-<input type="tel" maxlength="1" id="otp6" oninput="otpNext(6)">
+<input type="tel" maxlength="1" id="otp1" inputmode="numeric" pattern="[0-9]*" oninput="otpNext(1)" onkeydown="otpBack(1, event)">
+<input type="tel" maxlength="1" id="otp2" inputmode="numeric" pattern="[0-9]*" oninput="otpNext(2)" onkeydown="otpBack(2, event)">
+<input type="tel" maxlength="1" id="otp3" inputmode="numeric" pattern="[0-9]*" oninput="otpNext(3)" onkeydown="otpBack(3, event)">
+<input type="tel" maxlength="1" id="otp4" inputmode="numeric" pattern="[0-9]*" oninput="otpNext(4)" onkeydown="otpBack(4, event)">
+<input type="tel" maxlength="1" id="otp5" inputmode="numeric" pattern="[0-9]*" oninput="otpNext(5)" onkeydown="otpBack(5, event)">
+<input type="tel" maxlength="1" id="otp6" inputmode="numeric" pattern="[0-9]*" oninput="otpNext(6)" onkeydown="otpBack(6, event)">
 </div>
 <div class="gbox">
 <h4>🎭 حالت دمو</h4>
@@ -1931,14 +1931,12 @@ window.sendOTP = async function(){
     var cleanPhone = p.replace(/\D/g, '');
     if(cleanPhone.startsWith('98') && cleanPhone.length === 12) cleanPhone = '0' + cleanPhone.slice(2);
     if(cleanPhone.startsWith('9') && cleanPhone.length === 10) cleanPhone = '0' + cleanPhone;
-    if(!/^09\d{9}$/.test(cleanPhone)){ toast('⚠️ شماره نامعتبر: ' + cleanPhone); return; }
+    if(!/^09\d{9}$/.test(cleanPhone)){ toast('⚠️ شماره نامعتبر'); return; }
     S.user.phone = cleanPhone;
     var invEl = document.getElementById('inviteInput');
     if(invEl && invEl.value.trim()) S.user.invitedBy = invEl.value.trim().toUpperCase();
     var disp = document.getElementById('otpDisplay');
     if(disp) disp.textContent = 'در حال ارسال کد به ' + cleanPhone + '...';
-    var btn = event && event.target ? event.target : null;
-    if(btn){ btn.disabled = true; btn.style.opacity = '.6'; }
     try {
         var resp = await fetch('https://xruqejsaprromvvooqwg.supabase.co/functions/v1/send-otp', {
             method: 'POST',
@@ -1946,78 +1944,73 @@ window.sendOTP = async function(){
             body: JSON.stringify({ phone: cleanPhone })
         });
         var data = await resp.json();
-        console.log('Send response:', data);
-        if(!data.success){
-            toast('❌ ' + (data.error || 'خطا در ارسال پیامک'));
-            if(disp) disp.textContent = 'خطا در ارسال';
-            if(btn){ btn.disabled = false; btn.style.opacity = '1'; }
-            return;
-        }
+        if(!data.success){ toast('❌ ' + (data.error || 'خطا در ارسال')); if(disp) disp.textContent = 'خطا'; return; }
         if(disp) disp.textContent = 'کد فرستاده شد به ' + cleanPhone;
         showScreen('otp');
         var oh = document.getElementById('otpHead');
         if(oh){
-            var regSteps = [
-                { icon:'🎭', label:'نقش' },{ icon:'📱', label:'موبایل' },{ icon:'🔢', label:'کد' },
-                { icon:'🪪', label:'هویت' },{ icon:'💳', label:'بانک' }
-            ];
+            var regSteps = [{ icon:'🎭', label:'نقش' },{ icon:'📱', label:'موبایل' },{ icon:'🔢', label:'کد' },{ icon:'🪪', label:'هویت' },{ icon:'💳', label:'بانک' }];
             if(!oh.querySelector('.progress-steps')) oh.insertAdjacentHTML('afterbegin', renderProgress(regSteps, 2));
         }
         toast('✅ کد پیامک شد');
         setTimeout(function(){ var f = document.getElementById('otp1'); if(f) f.focus(); }, 300);
     } catch(e) {
         console.error('sendOTP error:', e);
-        toast('❌ خطا در اتصال: ' + e.message);
-        if(disp) disp.textContent = 'خطا در اتصال';
-        if(btn){ btn.disabled = false; btn.style.opacity = '1'; }
+        toast('❌ خطا در اتصال');
+        if(disp) disp.textContent = 'خطا';
     }
 };
 window.resendOTP = function(){ toast('✅ کد مجدد فرستاده شد'); speak('کد مجدد فرستاده شد'); };
 window.otpNext = function(n){
-var e = document.getElementById('otp' + n);
-if(e && e.value && n < 6){ var nx = document.getElementById('otp' + (n+1)); if(nx) nx.focus(); }
+    var el = document.getElementById('otp' + n);
+    if(!el) return;
+    if(el.value && el.value.length >= 1){
+        el.classList.add('filled'); el.dispatchEvent(new Event('input'));
+        if(n < 6){ var nx = document.getElementById('otp' + (n+1)); if(nx) nx.focus(); }
+        else { el.blur(); }
+    } else {
+        el.classList.remove('filled');
+    }
+};
+window.otpBack = function(n, event){
+    if(event && event.key === 'Backspace' && !event.target.value && n > 1){
+        var prev = document.getElementById('otp' + (n-1));
+        if(prev){ prev.focus(); prev.value = ''; prev.classList.remove('filled'); }
+    }
 };
 window.verifyOTP = async function(){
-    var c = '';
-    for(var i = 1; i <= 6; i++){ var el = document.getElementById('otp' + i); if(el) c += el.value; }
-    if(c.length < 6){ toast('⚠️ کد کامل نیست'); return; }
+    var code = '';
+    for(var i = 1; i <= 6; i++){ 
+        var el = document.getElementById('otp' + i); 
+        if(el){ el.classList.add('filled'); el.dispatchEvent(new Event('input')); code += el.value; }
+    }
+    if(code.length < 6){ toast('⚠️ کد کامل نیست'); return; }
     var phone = S.user.phone || '';
-    // اطمینان از فرمت درست شماره
     var cleanPhone = phone.replace(/\D/g, '');
     if(cleanPhone.startsWith('98') && cleanPhone.length === 12) cleanPhone = '0' + cleanPhone.slice(2);
     if(cleanPhone.startsWith('9') && cleanPhone.length === 10) cleanPhone = '0' + cleanPhone;
     if(!/^09\d{9}$/.test(cleanPhone)){ toast('⚠️ شماره نامعتبر: ' + phone); return; }
     S.user.phone = cleanPhone;
-    console.log('Verify with phone:', cleanPhone, 'code:', c);
-    var btn = event && event.target ? event.target : null;
-    if(btn){ btn.disabled = true; btn.style.opacity = '.6'; }
+    console.log('Verify:', cleanPhone, code);
     try {
         var resp = await fetch('https://xruqejsaprromvvooqwg.supabase.co/functions/v1/verify-otp', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ phone: cleanPhone, code: c })
+            body: JSON.stringify({ phone: cleanPhone, code: code })
         });
         var data = await resp.json();
         console.log('Verify response:', data);
-        if(!data.success){
-            toast('❌ ' + (data.error || 'کد نامعتبر'));
-            if(btn){ btn.disabled = false; btn.style.opacity = '1'; }
-            return;
-        }
+        if(!data.success){ toast('❌ ' + (data.error || 'کد نامعتبر')); return; }
         showScreen('identity');
         var ih = document.getElementById('idHead');
         if(ih){
-            var regSteps = [
-                { icon:'🎭', label:'نقش' },{ icon:'📱', label:'موبایل' },{ icon:'🔢', label:'کد' },
-                { icon:'🪪', label:'هویت' },{ icon:'💳', label:'بانک' }
-            ];
+            var regSteps = [{ icon:'🎭', label:'نقش' },{ icon:'📱', label:'موبایل' },{ icon:'🔢', label:'کد' },{ icon:'🪪', label:'هویت' },{ icon:'💳', label:'بانک' }];
             if(!ih.querySelector('.progress-steps')) ih.insertAdjacentHTML('afterbegin', renderProgress(regSteps, 3));
         }
         toast('✅ تایید شد');
     } catch(e) {
         console.error('verifyOTP error:', e);
-        toast('❌ خطا در اتصال: ' + e.message);
-        if(btn){ btn.disabled = false; btn.style.opacity = '1'; }
+        toast('❌ خطا در اتصال');
     }
 };
 window.selID = function(el, type){
@@ -4998,10 +4991,7 @@ try { localStorage.clear(); } catch(_){}
 }
 }
 /* کاربر جدید — دمو پر شده */
-setTimeout(function(){
-var pi = document.getElementById('phoneInput');
-if(pi && !pi.value) pi.value = '912 123 4567';
-}, 500);
+/* حذف شد */
 /* دکمه صوتی بعد از لاگین */
 setTimeout(function(){
 if(S.literacy === false && !document.getElementById('litVoiceFloatBtn')){
