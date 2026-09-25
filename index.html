@@ -1908,33 +1908,35 @@ if(!ph.querySelector('.progress-steps')) ph.insertAdjacentHTML('afterbegin', ren
 <script>
 window.sendOTP = async function(){
     var ccEl = document.getElementById('countryCode');
-    var cc = ccEl ? ccEl.value.split(' ')[1] : '+98';
     var pEl = document.getElementById('phoneInput');
     var p = pEl ? pEl.value.trim() : '';
     if(p.length < 10){ toast('⚠️ شماره‌ت یه کم کوتاهه'); return; }
-    var fullPhone = '0' + p.replace(/\D/g, '').slice(-10);
-    if(!/^09\d{9}$/.test(fullPhone)){ toast('⚠️ شماره نامعتبر'); return; }
-    S.user.phone = fullPhone;
+    var cleanPhone = p.replace(/\D/g, '');
+    if(cleanPhone.startsWith('98') && cleanPhone.length === 12) cleanPhone = '0' + cleanPhone.slice(2);
+    if(cleanPhone.startsWith('9') && cleanPhone.length === 10) cleanPhone = '0' + cleanPhone;
+    if(!/^09\d{9}$/.test(cleanPhone)){ toast('⚠️ شماره نامعتبر: ' + cleanPhone); return; }
+    S.user.phone = cleanPhone;
     var invEl = document.getElementById('inviteInput');
     if(invEl && invEl.value.trim()) S.user.invitedBy = invEl.value.trim().toUpperCase();
     var disp = document.getElementById('otpDisplay');
-    if(disp) disp.textContent = 'در حال ارسال کد به ' + fullPhone + '...';
+    if(disp) disp.textContent = 'در حال ارسال کد به ' + cleanPhone + '...';
     var btn = event && event.target ? event.target : null;
     if(btn){ btn.disabled = true; btn.style.opacity = '.6'; }
     try {
         var resp = await fetch('https://xruqejsaprromvvooqwg.supabase.co/functions/v1/send-otp', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ phone: fullPhone })
+            body: JSON.stringify({ phone: cleanPhone })
         });
         var data = await resp.json();
+        console.log('Send response:', data);
         if(!data.success){
             toast('❌ ' + (data.error || 'خطا در ارسال پیامک'));
-            if(disp) disp.textContent = 'خطا در ارسال کد';
+            if(disp) disp.textContent = 'خطا در ارسال';
             if(btn){ btn.disabled = false; btn.style.opacity = '1'; }
             return;
         }
-        if(disp) disp.textContent = 'کد فرستاده شد به ' + fullPhone;
+        if(disp) disp.textContent = 'کد فرستاده شد به ' + cleanPhone;
         showScreen('otp');
         var oh = document.getElementById('otpHead');
         if(oh){
@@ -1945,9 +1947,10 @@ window.sendOTP = async function(){
             if(!oh.querySelector('.progress-steps')) oh.insertAdjacentHTML('afterbegin', renderProgress(regSteps, 2));
         }
         toast('✅ کد پیامک شد');
+        setTimeout(function(){ var f = document.getElementById('otp1'); if(f) f.focus(); }, 300);
     } catch(e) {
         console.error('sendOTP error:', e);
-        toast('❌ خطا در اتصال به سرور');
+        toast('❌ خطا در اتصال: ' + e.message);
         if(disp) disp.textContent = 'خطا در اتصال';
         if(btn){ btn.disabled = false; btn.style.opacity = '1'; }
     }
@@ -1961,15 +1964,24 @@ window.verifyOTP = async function(){
     var c = '';
     for(var i = 1; i <= 6; i++){ var el = document.getElementById('otp' + i); if(el) c += el.value; }
     if(c.length < 6){ toast('⚠️ کد کامل نیست'); return; }
+    var phone = S.user.phone || '';
+    // اطمینان از فرمت درست شماره
+    var cleanPhone = phone.replace(/\D/g, '');
+    if(cleanPhone.startsWith('98') && cleanPhone.length === 12) cleanPhone = '0' + cleanPhone.slice(2);
+    if(cleanPhone.startsWith('9') && cleanPhone.length === 10) cleanPhone = '0' + cleanPhone;
+    if(!/^09\d{9}$/.test(cleanPhone)){ toast('⚠️ شماره نامعتبر: ' + phone); return; }
+    S.user.phone = cleanPhone;
+    console.log('Verify with phone:', cleanPhone, 'code:', c);
     var btn = event && event.target ? event.target : null;
     if(btn){ btn.disabled = true; btn.style.opacity = '.6'; }
     try {
         var resp = await fetch('https://xruqejsaprromvvooqwg.supabase.co/functions/v1/verify-otp', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ phone: S.user.phone, code: c })
+            body: JSON.stringify({ phone: cleanPhone, code: c })
         });
         var data = await resp.json();
+        console.log('Verify response:', data);
         if(!data.success){
             toast('❌ ' + (data.error || 'کد نامعتبر'));
             if(btn){ btn.disabled = false; btn.style.opacity = '1'; }
@@ -1987,7 +1999,7 @@ window.verifyOTP = async function(){
         toast('✅ تایید شد');
     } catch(e) {
         console.error('verifyOTP error:', e);
-        toast('❌ خطا در اتصال به سرور');
+        toast('❌ خطا در اتصال: ' + e.message);
         if(btn){ btn.disabled = false; btn.style.opacity = '1'; }
     }
 };
