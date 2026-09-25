@@ -1906,52 +1906,90 @@ if(!ph.querySelector('.progress-steps')) ph.insertAdjacentHTML('afterbegin', ren
 };
 </script>
 <script>
-window.sendOTP = function(){
-var ccEl = document.getElementById('countryCode');
-var cc = ccEl ? ccEl.value.split(' ')[1] : '+98';
-var pEl = document.getElementById('phoneInput');
-var p = pEl ? pEl.value.trim() : '';
-if(p.length < 8){ toast('⚠️ شماره‌ت یه کم کوتاهه'); return; }
-S.user.phone = cc + ' ' + p;
-var invEl = document.getElementById('inviteInput');
-if(invEl && invEl.value.trim()) S.user.invitedBy = invEl.value.trim().toUpperCase();
-var disp = document.getElementById('otpDisplay');
-if(disp) disp.textContent = 'کد فرستاده شد به ' + S.user.phone;
-showScreen('otp');
-var oh = document.getElementById('otpHead');
-if(oh){
-var regSteps = [
-{ icon:'🎭', label:'نقش' },{ icon:'📱', label:'موبایل' },{ icon:'🔢', label:'کد' },
-{ icon:'🪪', label:'هویت' },{ icon:'💳', label:'بانک' }
-];
-if(!oh.querySelector('.progress-steps')) oh.insertAdjacentHTML('afterbegin', renderProgress(regSteps, 2));
-}
-setTimeout(function(){
-['1','2','3','4','5','6'].forEach(function(d, i){
-var el = document.getElementById('otp' + (i+1));
-if(el){ el.value = d; el.classList.add('filled'); }
-});
-toast('🎭 کد دمو: ۱۲۳۴۵۶');
-}, 200);
+window.sendOTP = async function(){
+    var ccEl = document.getElementById('countryCode');
+    var cc = ccEl ? ccEl.value.split(' ')[1] : '+98';
+    var pEl = document.getElementById('phoneInput');
+    var p = pEl ? pEl.value.trim() : '';
+    if(p.length < 10){ toast('⚠️ شماره‌ت یه کم کوتاهه'); return; }
+    var fullPhone = '0' + p.replace(/\D/g, '').slice(-10);
+    if(!/^09\d{9}$/.test(fullPhone)){ toast('⚠️ شماره نامعتبر'); return; }
+    S.user.phone = fullPhone;
+    var invEl = document.getElementById('inviteInput');
+    if(invEl && invEl.value.trim()) S.user.invitedBy = invEl.value.trim().toUpperCase();
+    var disp = document.getElementById('otpDisplay');
+    if(disp) disp.textContent = 'در حال ارسال کد به ' + fullPhone + '...';
+    var btn = event && event.target ? event.target : null;
+    if(btn){ btn.disabled = true; btn.style.opacity = '.6'; }
+    try {
+        var resp = await fetch('https://xruqejsaprromvvooqwg.supabase.co/functions/v1/send-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone: fullPhone })
+        });
+        var data = await resp.json();
+        if(!data.success){
+            toast('❌ ' + (data.error || 'خطا در ارسال پیامک'));
+            if(disp) disp.textContent = 'خطا در ارسال کد';
+            if(btn){ btn.disabled = false; btn.style.opacity = '1'; }
+            return;
+        }
+        if(disp) disp.textContent = 'کد فرستاده شد به ' + fullPhone;
+        showScreen('otp');
+        var oh = document.getElementById('otpHead');
+        if(oh){
+            var regSteps = [
+                { icon:'🎭', label:'نقش' },{ icon:'📱', label:'موبایل' },{ icon:'🔢', label:'کد' },
+                { icon:'🪪', label:'هویت' },{ icon:'💳', label:'بانک' }
+            ];
+            if(!oh.querySelector('.progress-steps')) oh.insertAdjacentHTML('afterbegin', renderProgress(regSteps, 2));
+        }
+        toast('✅ کد پیامک شد');
+    } catch(e) {
+        console.error('sendOTP error:', e);
+        toast('❌ خطا در اتصال به سرور');
+        if(disp) disp.textContent = 'خطا در اتصال';
+        if(btn){ btn.disabled = false; btn.style.opacity = '1'; }
+    }
 };
 window.resendOTP = function(){ toast('✅ کد مجدد فرستاده شد'); speak('کد مجدد فرستاده شد'); };
 window.otpNext = function(n){
 var e = document.getElementById('otp' + n);
 if(e && e.value && n < 6){ var nx = document.getElementById('otp' + (n+1)); if(nx) nx.focus(); }
 };
-window.verifyOTP = function(){
-var c = '';
-for(var i = 1; i <= 6; i++){ var el = document.getElementById('otp' + i); if(el) c += el.value; }
-if(c.length < 6){ toast('⚠️ کد کامل نیست'); return; }
-showScreen('identity');
-var ih = document.getElementById('idHead');
-if(ih){
-var regSteps = [
-{ icon:'🎭', label:'نقش' },{ icon:'📱', label:'موبایل' },{ icon:'🔢', label:'کد' },
-{ icon:'🪪', label:'هویت' },{ icon:'💳', label:'بانک' }
-];
-if(!ih.querySelector('.progress-steps')) ih.insertAdjacentHTML('afterbegin', renderProgress(regSteps, 3));
-}
+window.verifyOTP = async function(){
+    var c = '';
+    for(var i = 1; i <= 6; i++){ var el = document.getElementById('otp' + i); if(el) c += el.value; }
+    if(c.length < 6){ toast('⚠️ کد کامل نیست'); return; }
+    var btn = event && event.target ? event.target : null;
+    if(btn){ btn.disabled = true; btn.style.opacity = '.6'; }
+    try {
+        var resp = await fetch('https://xruqejsaprromvvooqwg.supabase.co/functions/v1/verify-otp', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ phone: S.user.phone, code: c })
+        });
+        var data = await resp.json();
+        if(!data.success){
+            toast('❌ ' + (data.error || 'کد نامعتبر'));
+            if(btn){ btn.disabled = false; btn.style.opacity = '1'; }
+            return;
+        }
+        showScreen('identity');
+        var ih = document.getElementById('idHead');
+        if(ih){
+            var regSteps = [
+                { icon:'🎭', label:'نقش' },{ icon:'📱', label:'موبایل' },{ icon:'🔢', label:'کد' },
+                { icon:'🪪', label:'هویت' },{ icon:'💳', label:'بانک' }
+            ];
+            if(!ih.querySelector('.progress-steps')) ih.insertAdjacentHTML('afterbegin', renderProgress(regSteps, 3));
+        }
+        toast('✅ تایید شد');
+    } catch(e) {
+        console.error('verifyOTP error:', e);
+        toast('❌ خطا در اتصال به سرور');
+        if(btn){ btn.disabled = false; btn.style.opacity = '1'; }
+    }
 };
 window.selID = function(el, type){
 document.querySelectorAll('.idcard').forEach(function(c){ c.classList.remove('selected'); });
