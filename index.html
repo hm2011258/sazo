@@ -679,6 +679,23 @@ style="text-align:center;direction:ltr;font-family:monospace">
 <button class="abtn" onclick="verifyOTP()">
 <span class="ico-lb">✅</span><span>تایید کن</span>
 </button>
+<div style="margin-top:1rem;padding:.6rem;background:#FEF3C7;border-radius:.5rem;font-size:.7rem;color:#78350F;word-break:break-all">
+<div><b>🐛 دیباگ:</b></div>
+<div id="debugPhone" style="margin-top:.3rem">Phone: —</div>
+<div id="debugCode" style="margin-top:.3rem">Code: —</div>
+<button onclick="debugUpdate()" style="margin-top:.5rem;padding:.4rem .8rem;background:#B45309;color:#fff;border:none;border-radius:.3rem;font-weight:900;font-size:.7rem">بروزرسانی</button>
+</div>
+<script>
+function debugUpdate(){
+    var code = '';
+    for(var i = 1; i <= 6; i++){ var el = document.getElementById('otp' + i); if(el) code += el.value; }
+    var dp = document.getElementById('debugPhone');
+    var dc = document.getElementById('debugCode');
+    if(dp) dp.textContent = 'Phone: ' + (S.user.phone || 'خالی');
+    if(dc) dc.textContent = 'Code: ' + (code || 'خالی') + ' (' + code.length + ' رقم)';
+}
+</script>
+
 <div class="fhint" style="margin-top:.8rem;text-align:center">
 <b onclick="resendOTP()" style="color:var(--primary);cursor:pointer;
 text-decoration:underline">ارسال مجدد</b> کد نیومد؟
