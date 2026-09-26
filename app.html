@@ -1,7 +1,48 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
+<script>
+/* ═══ Auto-Reload وقتی نسخه جدید اومد ═══ */
+(function(){
+    var CURRENT_VERSION = Date.now(); // ← هر بار کد جدید، این عوض می‌شه
+    var VERSION_KEY = 'sazo_loaded_version';
+    
+    // اگه نسخه‌ی جدید اومد، رفرش کن
+    var storedVersion = localStorage.getItem(VERSION_KEY);
+    if(storedVersion && storedVersion !== String(CURRENT_VERSION)){
+        // یه بار رفرش کن
+        localStorage.setItem(VERSION_KEY, String(CURRENT_VERSION));
+        var url = window.location.href.split('?')[0].split('#')[0];
+        window.location.replace(url + '?v=' + CURRENT_VERSION);
+        return;
+    }
+    localStorage.setItem(VERSION_KEY, String(CURRENT_VERSION));
+    
+    // چک دوره‌ای که آیا فایل جدید هست
+    setInterval(function(){
+        fetch(window.location.pathname + '?_=' + Date.now(), { method: 'HEAD', cache: 'no-store' })
+            .then(function(r){
+                var lastMod = r.headers.get('last-modified');
+                if(lastMod){
+                    var stored = localStorage.getItem('sazo_last_modified');
+                    if(stored && stored !== lastMod){
+                        localStorage.setItem('sazo_last_modified', lastMod);
+                        location.reload(true);
+                    } else if(!stored){
+                        localStorage.setItem('sazo_last_modified', lastMod);
+                    }
+                }
+            })
+            .catch(function(){});
+    }, 60000); // هر ۶۰ ثانیه
+})();
+</script>
+
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <meta name="theme-color" content="#1E3A8A">
 <title>سازو داربست</title>
@@ -76,10 +117,8 @@ border-right:.15rem solid var(--primary3)}
 .pinput select{padding:.85rem;border:.1rem solid var(--border);border-radius:.7rem;
 font-size:.85rem;font-weight:700;background:var(--card2)}
 
-.otp{display:flex;gap:.4rem;justify-content:center;margin:1rem 0;flex-wrap:wrap;direction:ltr}
-.otp input{width:2.7rem;height:3.4rem;text-align:center;font-size:1.3rem;font-weight:900;
-border:.1rem solid var(--border);border-radius:.65rem;background:var(--card);
-direction:ltr;-webkit-appearance:none;appearance:none}
+.otp{display:flex !important;gap:.4rem;justify-content:center;margin:1rem 0;flex-wrap:wrap;direction:ltr !important;flex-direction:row !important}
+.otp input{width:2.7rem;height:3.4rem;text-align:center;font-size:1.3rem;font-weight:900;border:.1rem solid var(--border);border-radius:.65rem;background:var(--card);direction:ltr !important;unicode-bidi:plaintext !important}
 .otp input.filled{border-color:var(--primary3);background:var(--plight);color:var(--primary)}
 .otp input:focus{outline:none;border-color:var(--primary3);box-shadow:0 0 0 3px rgba(37,99,235,.15)}
 
@@ -666,13 +705,8 @@ style="text-align:center;direction:ltr;font-family:monospace">
 <h2>کد ۶ رقمی اومد؟</h2>
 <p id="otpDisplay">کد فرستاده شد</p>
 </div>
-<div class="otp">
-<input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" id="otp1" dir="ltr" oninput="otpNext(1)" onkeydown="otpBack(1, event)" autocomplete="one-time-code">
-<input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" id="otp2" dir="ltr" oninput="otpNext(2)" onkeydown="otpBack(2, event)" autocomplete="one-time-code">
-<input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" id="otp3" dir="ltr" oninput="otpNext(3)" onkeydown="otpBack(3, event)" autocomplete="one-time-code">
-<input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" id="otp4" dir="ltr" oninput="otpNext(4)" onkeydown="otpBack(4, event)" autocomplete="one-time-code">
-<input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" id="otp5" dir="ltr" oninput="otpNext(5)" onkeydown="otpBack(5, event)" autocomplete="one-time-code">
-<input type="tel" inputmode="numeric" pattern="[0-9]*" maxlength="1" id="otp6" dir="ltr" oninput="otpNext(6)" onkeydown="otpBack(6, event)" autocomplete="one-time-code">
+<div class="otp-single">
+<input type="text" id="otpSingle" maxlength="6" inputmode="numeric" pattern="[0-9]*" dir="ltr" autocomplete="one-time-code" name="one-time-code" placeholder="- - - - - -" style="width:100%;max-width:20rem;padding:1rem;font-size:1.8rem;font-weight:900;letter-spacing:.8rem;text-align:center;direction:ltr;border:.15rem solid var(--border);border-radius:.7rem;background:var(--card);font-family:monospace">
 </div>
 <div class="gbox">
 <div class="it">فقط روی تایید بزن — کد خودکار پر شده</div>
@@ -914,6 +948,16 @@ onclick="showMapHelp()">❓</button>
 </div>
 </div>
 <div class="content" id="applicantsContent"></div>
+</div>
+
+
+<div class="screen register" id="screen-profile-setup">
+<div class="reg-head">
+<div class="icon" id="psIcon">📝</div>
+<h2 id="psTitle">تکمیل اطلاعات</h2>
+<p id="psDesc">اطلاعات حرفه‌ای خودت رو وارد کن</p>
+</div>
+<div id="psForm"></div>
 </div>
 
 <div class="modal" id="modal" onclick="if(event.target===this)closeModal()">
@@ -1935,43 +1979,7 @@ if(!ph.querySelector('.progress-steps')) ph.insertAdjacentHTML('afterbegin', ren
 };
 </script>
 <script>
-window.sendOTP = async function(){
-    var ccEl = document.getElementById('countryCode');
-    var pEl = document.getElementById('phoneInput');
-    var p = pEl ? pEl.value.trim() : '';
-    if(p.length < 10){ toast('⚠️ شماره‌ت یه کم کوتاهه'); return; }
-    var cleanPhone = p.replace(/\D/g, '');
-    if(cleanPhone.startsWith('98') && cleanPhone.length === 12) cleanPhone = '0' + cleanPhone.slice(2);
-    if(cleanPhone.startsWith('9') && cleanPhone.length === 10) cleanPhone = '0' + cleanPhone;
-    if(!/^09\d{9}$/.test(cleanPhone)){ toast('⚠️ شماره نامعتبر'); return; }
-    S.user.phone = cleanPhone;
-    var invEl = document.getElementById('inviteInput');
-    if(invEl && invEl.value.trim()) S.user.invitedBy = invEl.value.trim().toUpperCase();
-    var disp = document.getElementById('otpDisplay');
-    if(disp) disp.textContent = 'در حال ارسال کد به ' + cleanPhone + '...';
-    try {
-        var resp = await fetch('https://xruqejsaprromvvooqwg.supabase.co/functions/v1/send-otp', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ phone: cleanPhone })
-        });
-        var data = await resp.json();
-        if(!data.success){ toast('❌ ' + (data.error || 'خطا در ارسال')); if(disp) disp.textContent = 'خطا'; return; }
-        if(disp) disp.textContent = 'کد فرستاده شد به ' + cleanPhone;
-        showScreen('otp');
-        var oh = document.getElementById('otpHead');
-        if(oh){
-            var regSteps = [{ icon:'🎭', label:'نقش' },{ icon:'📱', label:'موبایل' },{ icon:'🔢', label:'کد' },{ icon:'🪪', label:'هویت' },{ icon:'💳', label:'بانک' }];
-            if(!oh.querySelector('.progress-steps')) oh.insertAdjacentHTML('afterbegin', renderProgress(regSteps, 2));
-        }
-        toast('✅ کد پیامک شد');
-        setTimeout(function(){ var f = document.getElementById('otp1'); if(f) f.focus(); }, 300);
-    } catch(e) {
-        console.error('sendOTP error:', e);
-        toast('❌ خطا در اتصال');
-        if(disp) disp.textContent = 'خطا';
-    }
-};
+
 window.resendOTP = function(){ toast('✅ کد مجدد فرستاده شد'); speak('کد مجدد فرستاده شد'); };
 
 
@@ -2266,7 +2274,13 @@ hc.insertBefore(b, hc.firstChild);
 </script>
 <script>
 window.mS = { scale:1, x:0, y:0 };
+var _origRenderMap = window.renderMap;
 window.renderMap = function(){
+if(typeof _origRenderMap === 'function') _origRenderMap();
+setTimeout(function(){ if(typeof renderMapReal === 'function') renderMapReal(); }, 100);
+return;
+};
+var _neverUse = function(){
 var r = S.user.role;
 var pl = document.getElementById('pinsLayer');
 if(!pl) return;
@@ -3854,48 +3868,7 @@ showSuccessAnim(null, { icon:'🚨', msg:'گزارش ثبت شد!', sub:'برر�
 };
 </script>
 <script>
-window.openCharge = function(){
-    var card = window.SAZO_PAYMENT.card;
-    var holder = window.SAZO_PAYMENT.holder;
-    var bank = window.SAZO_PAYMENT.bank;
-    showSheet(
-        '<button class="cbtn" onclick="closeModal()">✕</button>' +
-        '<div class="stitle">💳 شارژ کیف پول</div>' +
-        '<div class="gbox" style="background:var(--plight);border-color:var(--primary3);text-align:center">' +
-        '<h4>💰 موجودی فعلی</h4>' +
-        '<div style="font-size:1.3rem;font-weight:900;color:var(--primary3)">' + fmt(S.wallet.balance) + ' تومان</div>' +
-        '</div>' +
-        '<div class="gbox" style="background:linear-gradient(135deg,#FEF3C7,#FDE68A);border-color:var(--warning)">' +
-        '<h4 style="color:var(--warning)">📋 راهنمای شارژ</h4>' +
-        '<div class="it" style="color:var(--warning);font-size:.85rem;line-height:1.8">' +
-        '۱. مبلغ رو انتخاب کن<br>' +
-        '۲. کارت به کارت کن<br>' +
-        '۳. شماره پیگیری رو وارد کن<br>' +
-        '۴. منتظر تایید بمون (۱-۲ ساعت)' +
-        '</div></div>' +
-        '<div class="card" style="border:.2rem solid var(--primary3);background:var(--plight)">' +
-        '<div class="ctitle">💳 اطلاعات کارت</div>' +
-        '<div style="font-size:.85rem;font-weight:900;color:var(--primary);margin-bottom:.3rem;text-align:center">' + bank + '</div>' +
-        '<div style="font-family:monospace;font-size:1.1rem;font-weight:900;direction:ltr;text-align:center;letter-spacing:.1rem;padding:.7rem;background:#fff;border-radius:.5rem;color:var(--primary3)" id="cardNumberDisplay">' + card + '</div>' +
-        '<div style="font-size:.85rem;text-align:center;margin-top:.4rem;color:var(--text2)">به نام: ' + holder + '</div>' +
-        '<button class="btn bo" style="margin-top:.5rem" onclick="copyCardNumber()"><span class="ico-lb">📋</span><span>کپی شماره کارت</span></button>' +
-        '</div>' +
-        '<div class="fgroup"><label class="flabel">💰 مبلغ (تومان)</label>' +
-        '<input type="number" class="finput" id="chargeAmt" value="500000" style="text-align:center;font-size:1.1rem;font-weight:900"></div>' +
-        '<div class="chips" style="justify-content:center">' +
-        [500000,1000000,5000000,10000000].map(function(a){
-            return '<div class="chip" onclick="document.getElementById(\'chargeAmt\').value=' + a + '">' + priceShort(a) + '</div>';
-        }).join('') + '</div>' +
-        '<div class="fgroup"><label class="flabel">📝 شماره پیگیری</label>' +
-        '<input type="text" class="finput" id="trackingNum" placeholder="شماره پیگیری رو اینجا وارد کن" style="text-align:center;direction:ltr;font-family:monospace"></div>' +
-        '<div class="gbox" style="background:var(--card2);border-color:var(--border);font-size:.8rem">' +
-        '<div class="it">💡 بعد از واریز، شماره پیگیری رو از موبایل بانک کپی کن</div>' +
-        '<div class="it">⚠️ مبلغ حداقل: ۱۰۰,۰۰۰ تومان</div>' +
-        '</div>' +
-        '<button class="btn bp" onclick="submitManualPayment()"><span class="ico-lb">📤</span><span>ارسال درخواست</span></button>' +
-        '<button class="btn bo" style="margin-top:.4rem" onclick="showMyPayments()"><span class="ico-lb">📜</span><span>تاریخچه درخواست‌ها</span></button>'
-    );
-};
+
 
 window.openWithdraw = function(){
 showSheet('<button class="cbtn" onclick="closeModal()">✕</button><div class="stitle">💸 برداشت وجه</div>' +
@@ -4964,6 +4937,9 @@ setTimeout(function(){
 showScreen('home');
 toast('خوش برگشتی 👋');
 if(typeof syncWallet === 'function') syncWallet();
+    if(typeof loadRealCompanies === 'function'){ loadRealCompanies(); loadRealWorkers(); loadRealSellers(); loadMaterialNeeds(); loadRealJobs(); }
+    if(typeof loadRealCompanies === 'function'){ loadRealCompanies(); loadRealWorkers(); loadRealSellers(); loadMaterialNeeds(); loadRealJobs(); }
+if(typeof loadRealCompanies === 'function'){ loadRealCompanies(); loadRealWorkers(); loadRealSellers(); }
 }, 300);
 return;
 } catch(e){
@@ -5068,45 +5044,9 @@ return r;
 };
 console.log('[SAZO] Final ready');
 console.log('[SAZO] برای تست: testSazo()');
-window.otpNext = function(n){
-    var el = document.getElementById('otp' + n);
-    if(!el) return;
-    var val = el.value.replace(/\D/g, '');
-    if(val.length > 1){
-        // کاربر کد رو paste کرده
-        var digits = val.split('');
-        for(var j = 0; j < 6; j++){
-            var e = document.getElementById('otp' + (j+1));
-            if(e && digits[j]){
-                e.value = digits[j];
-                e.classList.add('filled');
-            }
-        }
-        el.value = digits[0] || '';
-        var last = document.getElementById('otp6');
-        if(last) last.focus();
-        return;
-    }
-    el.value = val;
-    if(val.length >= 1){
-        el.classList.add('filled');
-        if(n < 6){
-            var nx = document.getElementById('otp' + (n+1));
-            if(nx) nx.focus();
-        } else {
-            el.blur();
-        }
-    } else {
-        el.classList.remove('filled');
-    }
-};
 
-window.otpBack = function(n, event){
-    if(event && event.key === 'Backspace' && !event.target.value && n > 1){
-        var prev = document.getElementById('otp' + (n-1));
-        if(prev){ prev.focus(); prev.value = ''; prev.classList.remove('filled'); }
-    }
-};
+
+
 
 // پشتیبانی از paste
 document.addEventListener('DOMContentLoaded', function(){
@@ -5129,279 +5069,1543 @@ document.addEventListener('DOMContentLoaded', function(){
         }
     }
 });
-window.verifyOTP = async function(){
-    var code = '';
-    for(var i = 1; i <= 6; i++){ 
-        var el = document.getElementById('otp' + i); 
-        if(el){ el.classList.add('filled'); code += el.value; }
+
+
+/* ─── کارت به کارت ─── */
+window.copyCardNumber = function(){
+    var card = window.SAZO_PAYMENT.card.replace(/[-\s]/g, '');
+    if(navigator.clipboard){
+        navigator.clipboard.writeText(card).then(function(){
+            toast('✅ شماره کارت کپی شد');
+        }).catch(function(){
+            toast('📋 ' + card);
+        });
+    } else {
+        toast('📋 ' + card);
     }
-    if(code.length < 6){ toast('⚠️ کد کامل نیست — ' + code.length + ' رقم'); return; }
-    var phone = S.user.phone || '';
-    var cleanPhone = phone.replace(/\D/g, '');
-    if(cleanPhone.startsWith('98') && cleanPhone.length === 12) cleanPhone = '0' + cleanPhone.slice(2);
-    if(cleanPhone.startsWith('9') && cleanPhone.length === 10) cleanPhone = '0' + cleanPhone;
-    if(!/^09\d{9}$/.test(cleanPhone)){ toast('⚠️ شماره نامعتبر'); return; }
-    S.user.phone = cleanPhone;
-    console.log('Verify: phone=' + cleanPhone + ' code=' + code);
+};
+
+
+
+window.showMyPayments = async function(){
+    if(!S.user || !S.user.phone) return;
     try {
-        var resp = await fetch('https://xruqejsaprromvvooqwg.supabase.co/functions/v1/verify-otp', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ phone: cleanPhone, code: code })
+        var resp = await fetch('https://xruqejsaprromvvooqwg.supabase.co/rest/v1/manual_payments?user_phone=eq.' + S.user.phone + '&order=created_at.desc&limit=10', {
+            headers: {
+                'apikey': window.SAZO_SUPABASE_KEY,
+                'Authorization': 'Bearer ' + window.SAZO_SUPABASE_KEY
+            }
         });
         var data = await resp.json();
-        console.log('Verify response:', data);
-        if(!data.success){ toast('❌ ' + (data.error || 'کد نامعتبر')); return; }
+        if(!data || data.length === 0){
+            showSheet('<button class="cbtn" onclick="closeModal()">✕</button><div class="stitle">📜 تاریخچه</div><div class="empty"><div class="ic">📜</div><p>هنوز درخواستی نداری</p></div><button class="btn bo" onclick="closeModal()">بستن</button>');
+            return;
+        }
+        var html = '<button class="cbtn" onclick="closeModal()">✕</button><div class="stitle">📜 درخواست‌های من</div>';
+        data.forEach(function(p){
+            var statusText = p.status === 'pending' ? '⏳ در انتظار' : p.status === 'approved' ? '✅ تایید شده' : '❌ رد شده';
+            var statusColor = p.status === 'pending' ? 'var(--warning)' : p.status === 'approved' ? 'var(--success)' : 'var(--error)';
+            html += '<div class="card" style="padding:.75rem;margin-bottom:.4rem">' +
+                '<div style="font-size:.9rem;font-weight:900;color:var(--primary3)">' + fmt(p.amount) + ' تومان</div>' +
+                '<div style="font-size:.75rem;color:var(--text2);margin-top:.2rem">📝 پیگیری: ' + p.tracking_number + '</div>' +
+                '<div style="font-size:.75rem;color:var(--text2);margin-top:.2rem">📅 ' + fdt(p.created_at) + '</div>' +
+                '<div style="font-size:.8rem;font-weight:900;color:' + statusColor + ';margin-top:.3rem">' + statusText + '</div>' +
+                (p.admin_note ? '<div style="font-size:.7rem;color:var(--text2);margin-top:.2rem">📝 ' + p.admin_note + '</div>' : '') +
+                '</div>';
+        });
+        html += '<button class="btn bo" onclick="closeModal()">بستن</button>';
+        showSheet(html);
+    } catch(e) {
+        console.error(e);
+        toast('❌ خطا در دریافت');
+    }
+};
+
+window.syncWallet = async function(){
+    if(!S.user || !S.user.phone) return;
+    try {
+        var resp = await fetch('https://xruqejsaprromvvooqwg.supabase.co/rest/v1/phone_balances?phone=eq.' + S.user.phone, {
+            headers: {
+                'apikey': window.SAZO_SUPABASE_KEY,
+                'Authorization': 'Bearer ' + window.SAZO_SUPABASE_KEY
+            }
+        });
+        var data = await resp.json();
+        if(data && data.length > 0 && data[0].balance){
+            S.wallet.balance = data[0].balance;
+            LSs('sazo_user', S.user);
+        }
+    } catch(e) { console.error('syncWallet:', e); }
+};
+
+window.syncWalletAndRefresh = async function(){
+    await syncWallet();
+    if(typeof renderHome === 'function') renderHome();
+    if(typeof renderMe === 'function') renderMe();
+    toast('🔄 کیف پول بروزرسانی شد');
+};
+
+
+/* ─── کارت به کارت ─── */
+window.copyCardNumber = function(){
+    var card = window.SAZO_PAYMENT.card.replace(/[-\s]/g, '');
+    if(navigator.clipboard){
+        navigator.clipboard.writeText(card).then(function(){
+            toast('✅ شماره کارت کپی شد');
+        }).catch(function(){
+            toast('📋 ' + card);
+        });
+    } else {
+        toast('📋 ' + card);
+    }
+};
+
+
+
+window.showMyPayments = async function(){
+    if(!S.user || !S.user.phone) return;
+    try {
+        var resp = await fetch('https://xruqejsaprromvvooqwg.supabase.co/rest/v1/manual_payments?user_phone=eq.' + S.user.phone + '&order=created_at.desc&limit=10', {
+            headers: {
+                'apikey': window.SAZO_SUPABASE_KEY,
+                'Authorization': 'Bearer ' + window.SAZO_SUPABASE_KEY
+            }
+        });
+        var data = await resp.json();
+        if(!data || data.length === 0){
+            showSheet('<button class="cbtn" onclick="closeModal()">✕</button><div class="stitle">📜 تاریخچه</div><div class="empty"><div class="ic">📜</div><p>هنوز درخواستی نداری</p></div><button class="btn bo" onclick="closeModal()">بستن</button>');
+            return;
+        }
+        var html = '<button class="cbtn" onclick="closeModal()">✕</button><div class="stitle">📜 درخواست‌های من</div>';
+        data.forEach(function(p){
+            var statusText = p.status === 'pending' ? '⏳ در انتظار' : p.status === 'approved' ? '✅ تایید شده' : '❌ رد شده';
+            var statusColor = p.status === 'pending' ? 'var(--warning)' : p.status === 'approved' ? 'var(--success)' : 'var(--error)';
+            html += '<div class="card" style="padding:.75rem;margin-bottom:.4rem">' +
+                '<div style="font-size:.9rem;font-weight:900;color:var(--primary3)">' + fmt(p.amount) + ' تومان</div>' +
+                '<div style="font-size:.75rem;color:var(--text2);margin-top:.2rem">📝 پیگیری: ' + p.tracking_number + '</div>' +
+                '<div style="font-size:.75rem;color:var(--text2);margin-top:.2rem">📅 ' + fdt(p.created_at) + '</div>' +
+                '<div style="font-size:.8rem;font-weight:900;color:' + statusColor + ';margin-top:.3rem">' + statusText + '</div>' +
+                (p.admin_note ? '<div style="font-size:.7rem;color:var(--text2);margin-top:.2rem">📝 ' + p.admin_note + '</div>' : '') +
+                '</div>';
+        });
+        html += '<button class="btn bo" onclick="closeModal()">بستن</button>';
+        showSheet(html);
+    } catch(e) {
+        console.error(e);
+        toast('❌ خطا در دریافت');
+    }
+};
+
+window.syncWallet = async function(){
+    if(!S.user || !S.user.phone) return;
+    try {
+        var resp = await fetch('https://xruqejsaprromvvooqwg.supabase.co/rest/v1/phone_balances?phone=eq.' + S.user.phone, {
+            headers: {
+                'apikey': window.SAZO_SUPABASE_KEY,
+                'Authorization': 'Bearer ' + window.SAZO_SUPABASE_KEY
+            }
+        });
+        var data = await resp.json();
+        if(data && data.length > 0 && data[0].balance){
+            S.wallet.balance = data[0].balance;
+            LSs('sazo_user', S.user);
+        }
+    } catch(e) { console.error('syncWallet:', e); }
+};
+
+window.syncWalletAndRefresh = async function(){
+    await syncWallet();
+    if(typeof renderHome === 'function') renderHome();
+    if(typeof renderMe === 'function') renderMe();
+    toast('🔄 کیف پول بروزرسانی شد');
+};
+
+
+/* ─── کارت به کارت ─── */
+window.copyCardNumber = function(){
+    var card = window.SAZO_PAYMENT.card.replace(/[-\s]/g, '');
+    if(navigator.clipboard){
+        navigator.clipboard.writeText(card).then(function(){
+            toast('✅ شماره کارت کپی شد');
+        }).catch(function(){
+            toast('📋 ' + card);
+        });
+    } else {
+        toast('📋 ' + card);
+    }
+};
+
+
+
+window.showMyPayments = async function(){
+    if(!S.user || !S.user.phone) return;
+    try {
+        var resp = await fetch('https://xruqejsaprromvvooqwg.supabase.co/rest/v1/manual_payments?user_phone=eq.' + S.user.phone + '&order=created_at.desc&limit=10', {
+            headers: {
+                'apikey': window.SAZO_SUPABASE_KEY,
+                'Authorization': 'Bearer ' + window.SAZO_SUPABASE_KEY
+            }
+        });
+        var data = await resp.json();
+        if(!data || data.length === 0){
+            showSheet('<button class="cbtn" onclick="closeModal()">✕</button><div class="stitle">📜 تاریخچه</div><div class="empty"><div class="ic">📜</div><p>هنوز درخواستی نداری</p></div><button class="btn bo" onclick="closeModal()">بستن</button>');
+            return;
+        }
+        var html = '<button class="cbtn" onclick="closeModal()">✕</button><div class="stitle">📜 درخواست‌های من</div>';
+        data.forEach(function(p){
+            var statusText = p.status === 'pending' ? '⏳ در انتظار' : p.status === 'approved' ? '✅ تایید شده' : '❌ رد شده';
+            var statusColor = p.status === 'pending' ? 'var(--warning)' : p.status === 'approved' ? 'var(--success)' : 'var(--error)';
+            html += '<div class="card" style="padding:.75rem;margin-bottom:.4rem">' +
+                '<div style="font-size:.9rem;font-weight:900;color:var(--primary3)">' + fmt(p.amount) + ' تومان</div>' +
+                '<div style="font-size:.75rem;color:var(--text2);margin-top:.2rem">📝 پیگیری: ' + p.tracking_number + '</div>' +
+                '<div style="font-size:.75rem;color:var(--text2);margin-top:.2rem">📅 ' + fdt(p.created_at) + '</div>' +
+                '<div style="font-size:.8rem;font-weight:900;color:' + statusColor + ';margin-top:.3rem">' + statusText + '</div>' +
+                (p.admin_note ? '<div style="font-size:.7rem;color:var(--text2);margin-top:.2rem">📝 ' + p.admin_note + '</div>' : '') +
+                '</div>';
+        });
+        html += '<button class="btn bo" onclick="closeModal()">بستن</button>';
+        showSheet(html);
+    } catch(e) {
+        console.error(e);
+        toast('❌ خطا در دریافت');
+    }
+};
+
+window.syncWallet = async function(){
+    if(!S.user || !S.user.phone) return;
+    try {
+        var resp = await fetch('https://xruqejsaprromvvooqwg.supabase.co/rest/v1/phone_balances?phone=eq.' + S.user.phone, {
+            headers: {
+                'apikey': window.SAZO_SUPABASE_KEY,
+                'Authorization': 'Bearer ' + window.SAZO_SUPABASE_KEY
+            }
+        });
+        var data = await resp.json();
+        if(data && data.length > 0 && data[0].balance){
+            S.wallet.balance = data[0].balance;
+            LSs('sazo_user', S.user);
+        }
+    } catch(e) { console.error('syncWallet:', e); }
+};
+
+window.syncWalletAndRefresh = async function(){
+    await syncWallet();
+    if(typeof renderHome === 'function') renderHome();
+    if(typeof renderMe === 'function') renderMe();
+    toast('🔄 کیف پول بروزرسانی شد');
+};
+
+
+/* ─── OTP Functions ─── */
+
+
+
+
+
+
+
+
+document.addEventListener('paste', function(e){
+    var target = e.target;
+    if(target && target.id && target.id.indexOf('otp') === 0){
+        e.preventDefault();
+        var paste = (e.clipboardData || window.clipboardData).getData('text');
+        var digits = paste.replace(/\D/g, '').split('');
+        for(var j = 0; j < 6 && j < digits.length; j++){
+            var inp = document.getElementById('otp' + (j+1));
+            if(inp){ inp.value = digits[j]; inp.classList.add('filled'); }
+        }
+        if(digits.length === 6){
+            var last = document.getElementById('otp6');
+            if(last) last.focus();
+        }
+    }
+});
+
+
+
+
+
+
+/* ═══ OTP با یه input ═══ */
+window.getOTPCode = function(){
+    var el = document.getElementById('otpSingle');
+    return el ? (el.value || '').replace(/\D/g, '') : '';
+};
+
+window.clearOTP = function(){
+    var el = document.getElementById('otpSingle');
+    if(el){ el.value = ''; }
+};
+
+window.otpNext = function(n){
+    /* دیگه نیازی نیست - نگه‌داری برای سازگاری */
+};
+
+window.otpBack = function(n, event){
+    /* دیگه نیازی نیست */
+};
+
+
+
+window.openCharge = function(){
+    try {
+        console.log('openCharge called');
+        var pay = window.SAZO_PAYMENT || { card: "—", holder: "—", bank: "—" };
+        var balance = (S && S.wallet && S.wallet.balance) ? S.wallet.balance : 0;
+        var html = '<button class="cbtn" onclick="closeModal()">✕</button>' +
+            '<div class="stitle">💳 شارژ کیف پول</div>' +
+            '<div class="gbox" style="background:var(--plight);border-color:var(--primary3);text-align:center">' +
+            '<h4>💰 موجودی فعلی</h4>' +
+            '<div style="font-size:1.3rem;font-weight:900;color:var(--primary3)">' + fmt(balance) + ' تومان</div>' +
+            '</div>' +
+            '<div class="gbox" style="background:linear-gradient(135deg,#FEF3C7,#FDE68A);border-color:var(--warning)">' +
+            '<h4 style="color:var(--warning)">📋 راهنما</h4>' +
+            '<div class="it" style="color:var(--warning);font-size:.85rem;line-height:1.8">' +
+            '۱. مبلغ رو انتخاب کن<br>' +
+            '۲. کارت به کارت کن<br>' +
+            '۳. شماره پیگیری رو وارد کن<br>' +
+            '۴. منتظر تایید بمون' +
+            '</div></div>' +
+            '<div class="card" style="border:.2rem solid var(--primary3);background:var(--plight)">' +
+            '<div class="ctitle">💳 کارت به کارت</div>' +
+            '<div style="font-size:.85rem;font-weight:900;color:var(--primary);margin-bottom:.3rem;text-align:center">' + pay.bank + '</div>' +
+            '<div style="font-family:monospace;font-size:1.1rem;font-weight:900;direction:ltr;text-align:center;padding:.7rem;background:#fff;border-radius:.5rem;color:var(--primary3)">' + pay.card + '</div>' +
+            '<div style="font-size:.85rem;text-align:center;margin-top:.4rem;color:var(--text2)">به نام: ' + pay.holder + '</div>' +
+            '<button class="btn bo" style="margin-top:.5rem" onclick="copyCardNumber()"><span class="ico-lb">📋</span><span>کپی شماره کارت</span></button>' +
+            '</div>' +
+            '<div class="fgroup"><label class="flabel">💰 مبلغ (تومان)</label>' +
+            '<input type="number" class="finput" id="chargeAmt" value="500000" style="text-align:center;font-size:1.1rem;font-weight:900"></div>' +
+            '<div class="chips" style="justify-content:center">' +
+            [500000,1000000,5000000,10000000].map(function(a){
+                return '<div class="chip" onclick="document.getElementById(\'chargeAmt\').value=' + a + '">' + priceShort(a) + '</div>';
+            }).join('') + '</div>' +
+            '<div class="fgroup"><label class="flabel">📝 شماره پیگیری</label>' +
+            '<input type="text" class="finput" id="trackingNum" placeholder="شماره پیگیری" style="text-align:center;direction:ltr;font-family:monospace"></div>' +
+            '<button class="btn bp" onclick="submitManualPayment()"><span class="ico-lb">📤</span><span>ارسال درخواست</span></button>' +
+            '<button class="btn bo" style="margin-top:.4rem" onclick="showMyPayments()"><span class="ico-lb">📜</span><span>تاریخچه</span></button>';
+        showSheet(html);
+        console.log('openCharge done');
+    } catch(e) {
+        console.error('openCharge error:', e);
+        alert('خطا: ' + e.message);
+    }
+};
+
+window.submitManualPayment = async function(){
+    var amountEl = document.getElementById('chargeAmt');
+    var trackingEl = document.getElementById('trackingNum');
+    var amount = parseFloat(amountEl ? amountEl.value : 0) || 0;
+    var tracking = trackingEl ? trackingEl.value.trim() : '';
+    if(amount < 100000){ toast('⚠️ حداقل ۱۰۰,۰۰۰ تومان'); return; }
+    if(!tracking || tracking.length < 4){ toast('⚠️ شماره پیگیری'); return; }
+    if(!S.user || !S.user.phone){ toast('⚠️ شماره ثبت نشده'); return; }
+    try {
+        var resp = await fetch('https://xruqejsaprromvvooqwg.supabase.co/rest/v1/manual_payments', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'apikey': window.SAZO_SUPABASE_KEY,
+                'Authorization': 'Bearer ' + window.SAZO_SUPABASE_KEY,
+                'Prefer': 'return=representation'
+            },
+            body: JSON.stringify({
+                user_phone: S.user.phone,
+                user_name: S.user.name,
+                amount: amount,
+                tracking_number: tracking,
+                status: 'pending'
+            })
+        });
+        if(!resp.ok){ toast('❌ خطا در ارسال'); return; }
+        showSuccessAnim(function(){ closeModal(); }, { icon: '📤', msg: 'درخواست ثبت شد!', sub: 'منتظر تایید' });
+    } catch(e) { toast('❌ خطا: ' + e.message); }
+};
+
+console.log('[FIX-V2] OTP single input + openCharge reloaded');
+
+
+
+/* ═══ داده‌های واقعی از Supabase ═══ */
+window.loadRealCompanies = async function(){
+    try {
+        var r = await fetch('https://xruqejsaprromvvooqwg.supabase.co/rest/v1/companies?select=*&limit=100', {
+            headers: {
+                'apikey': window.SAZO_SUPABASE_KEY,
+                'Authorization': 'Bearer ' + window.SAZO_SUPABASE_KEY
+            }
+        });
+        var d = await r.json();
+        if(Array.isArray(d)) S.realCompanies = d;
+    } catch(e) { console.warn(e); }
+};
+
+window.loadRealWorkers = async function(){
+    try {
+        var r = await fetch('https://xruqejsaprromvvooqwg.supabase.co/rest/v1/workers?select=*&limit=100', {
+            headers: {
+                'apikey': window.SAZO_SUPABASE_KEY,
+                'Authorization': 'Bearer ' + window.SAZO_SUPABASE_KEY
+            }
+        });
+        var d = await r.json();
+        if(Array.isArray(d)) S.realWorkers = d;
+    } catch(e) { console.warn(e); }
+};
+
+window.loadRealSellers = async function(){
+    try {
+        var r = await fetch('https://xruqejsaprromvvooqwg.supabase.co/rest/v1/sellers?select=*&limit=100', {
+            headers: {
+                'apikey': window.SAZO_SUPABASE_KEY,
+                'Authorization': 'Bearer ' + window.SAZO_SUPABASE_KEY
+            }
+        });
+        var d = await r.json();
+        if(Array.isArray(d)) S.realSellers = d;
+    } catch(e) { console.warn(e); }
+};
+
+window.registerAsCompany = async function(info){
+    try {
+        var payload = {
+            name: info.name,
+            city: info.city,
+            address: info.address || '',
+            phone: S.user.phone,
+            lat: info.lat || 35.7,
+            lng: info.lng || 51.4,
+            verified: true,
+            online: true
+        };
+        var r = await fetch('https://xruqejsaprromvvooqwg.supabase.co/rest/v1/companies', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'apikey': window.SAZO_SUPABASE_KEY,
+                'Authorization': 'Bearer ' + window.SAZO_SUPABASE_KEY,
+                'Prefer': 'return=representation'
+            },
+            body: JSON.stringify(payload)
+        });
+        var d = await r.json();
+        if(d && d[0]){ toast('\u2705 شرکت ثبت شد'); loadRealCompanies(); return d[0]; }
+        return null;
+    } catch(e) { toast('\u274c خطا'); return null; }
+};
+
+window.registerAsWorker = async function(info){
+    try {
+        var payload = {
+            name: info.name || S.user.name,
+            city: info.city,
+            phone: S.user.phone,
+            level: info.level || 'استادکار',
+            years: info.years || 0,
+            lat: info.lat || 35.7,
+            lng: info.lng || 51.4,
+            skills: info.skills || [],
+            is_driver: info.isDriver || false,
+            verified: true,
+            online: true
+        };
+        var r = await fetch('https://xruqejsaprromvvooqwg.supabase.co/rest/v1/workers', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'apikey': window.SAZO_SUPABASE_KEY,
+                'Authorization': 'Bearer ' + window.SAZO_SUPABASE_KEY,
+                'Prefer': 'return=representation'
+            },
+            body: JSON.stringify(payload)
+        });
+        var d = await r.json();
+        if(d && d[0]){ toast('\u2705 کارگر ثبت شد'); loadRealWorkers(); return d[0]; }
+        return null;
+    } catch(e) { toast('\u274c خطا'); return null; }
+};
+
+window.registerAsSeller = async function(info){
+    try {
+        var payload = {
+            name: info.name || S.user.name,
+            city: info.city,
+            phone: S.user.phone,
+            specialty: info.specialty || '',
+            lat: info.lat || 35.7,
+            lng: info.lng || 51.4,
+            verified: true,
+            online: true
+        };
+        var r = await fetch('https://xruqejsaprromvvooqwg.supabase.co/rest/v1/sellers', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'apikey': window.SAZO_SUPABASE_KEY,
+                'Authorization': 'Bearer ' + window.SAZO_SUPABASE_KEY,
+                'Prefer': 'return=representation'
+            },
+            body: JSON.stringify(payload)
+        });
+        var d = await r.json();
+        if(d && d[0]){ toast('\u2705 فروشنده ثبت شد'); loadRealSellers(); return d[0]; }
+        return null;
+    } catch(e) { toast('\u274c خطا'); return null; }
+};
+
+window.submitReviewReal = async function(tid, tt, rating, text, tags){
+    try {
+        var r = await fetch('https://xruqejsaprromvvooqwg.supabase.co/rest/v1/reviews', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'apikey': window.SAZO_SUPABASE_KEY,
+                'Authorization': 'Bearer ' + window.SAZO_SUPABASE_KEY,
+                'Prefer': 'return=representation'
+            },
+            body: JSON.stringify({
+                target_id: String(tid),
+                target_type: tt,
+                rating: rating,
+                text: text,
+                tags: tags || [],
+                user_code: String(Math.floor(1000 + Math.random() * 9000)),
+                is_anonymous: true
+            })
+        });
+        var d = await r.json();
+        if(d && d[0]){ toast('\u2705 نظر ثبت شد'); return d[0]; }
+        return null;
+    } catch(e) { return null; }
+};
+
+window.loadRealReviews = async function(tid){
+    try {
+        var r = await fetch('https://xruqejsaprromvvooqwg.supabase.co/rest/v1/reviews?target_id=eq.' + tid + '&order=created_at.desc&limit=20', {
+            headers: {
+                'apikey': window.SAZO_SUPABASE_KEY,
+                'Authorization': 'Bearer ' + window.SAZO_SUPABASE_KEY
+            }
+        });
+        var d = await r.json();
+        return Array.isArray(d) ? d : [];
+    } catch(e) { return []; }
+};
+
+
+/* ═══════════════════════════════════════════════
+   توابع واقعی — اتصال به Supabase
+   ═══════════════════════════════════════════════ */
+
+var SB_URL = "https://xruqejsaprromvvooqwg.supabase.co";
+var SB_KEY = window.SAZO_SUPABASE_KEY;
+var SB_HEADERS = {
+    "apikey": SB_KEY,
+    "Authorization": "Bearer " + SB_KEY,
+    "Content-Type": "application/json"
+};
+
+/* ─── لود شرکت‌های واقعی ─── */
+window.loadRealCompanies = async function(){
+    try {
+        var r = await fetch(SB_URL + "/rest/v1/companies?select=*&limit=100", { headers: SB_HEADERS });
+        var d = await r.json();
+        if(Array.isArray(d)){
+            S.realCompanies = d;
+            console.log("شرکت‌ها: " + d.length);
+        }
+    } catch(e) { console.warn(e); }
+};
+
+/* ─── لود کارگرهای واقعی ─── */
+window.loadRealWorkers = async function(){
+    try {
+        var r = await fetch(SB_URL + "/rest/v1/workers?select=*&limit=100", { headers: SB_HEADERS });
+        var d = await r.json();
+        if(Array.isArray(d)){
+            S.realWorkers = d;
+            console.log("کارگرها: " + d.length);
+        }
+    } catch(e) { console.warn(e); }
+};
+
+/* ─── لود فروشنده‌های واقعی ─── */
+window.loadRealSellers = async function(){
+    try {
+        var r = await fetch(SB_URL + "/rest/v1/sellers?select=*&limit=100", { headers: SB_HEADERS });
+        var d = await r.json();
+        if(Array.isArray(d)){
+            S.realSellers = d;
+            console.log("فروشنده‌ها: " + d.length);
+        }
+    } catch(e) { console.warn(e); }
+};
+
+/* ─── ثبت شرکت جدید ─── */
+window.registerAsCompany = async function(info){
+    if(!S.user || !S.user.phone){ toast("شماره ثبت نشده"); return null; }
+    try {
+        var payload = {
+            name: info.name,
+            city: info.city,
+            address: info.address || "",
+            phone: S.user.phone,
+            lat: info.lat || 35.7,
+            lng: info.lng || 51.4,
+            verified: true,
+            online: true
+        };
+        var r = await fetch(SB_URL + "/rest/v1/companies", {
+            method: "POST",
+            headers: Object.assign({}, SB_HEADERS, { "Prefer": "return=representation" }),
+            body: JSON.stringify(payload)
+        });
+        var d = await r.json();
+        if(d && d[0]){
+            toast("شرکت ثبت شد");
+            loadRealCompanies();
+            return d[0];
+        }
+        toast("خطا در ثبت");
+        return null;
+    } catch(e) {
+        console.error(e);
+        toast("خطا: " + e.message);
+        return null;
+    }
+};
+
+/* ─── ثبت کارگر جدید ─── */
+window.registerAsWorker = async function(info){
+    if(!S.user || !S.user.phone){ toast("شماره ثبت نشده"); return null; }
+    try {
+        var payload = {
+            name: info.name || S.user.name,
+            city: info.city,
+            phone: S.user.phone,
+            level: info.level || "استادکار",
+            years: info.years || 0,
+            lat: info.lat || 35.7,
+            lng: info.lng || 51.4,
+            skills: info.skills || [],
+            is_driver: info.isDriver || false,
+            verified: true,
+            online: true
+        };
+        var r = await fetch(SB_URL + "/rest/v1/workers", {
+            method: "POST",
+            headers: Object.assign({}, SB_HEADERS, { "Prefer": "return=representation" }),
+            body: JSON.stringify(payload)
+        });
+        var d = await r.json();
+        if(d && d[0]){
+            toast("کارگر ثبت شد");
+            loadRealWorkers();
+            return d[0];
+        }
+        toast("خطا در ثبت");
+        return null;
+    } catch(e) {
+        console.error(e);
+        toast("خطا: " + e.message);
+        return null;
+    }
+};
+
+/* ─── ثبت فروشنده جدید ─── */
+window.registerAsSeller = async function(info){
+    if(!S.user || !S.user.phone){ toast("شماره ثبت نشده"); return null; }
+    try {
+        var payload = {
+            name: info.name || S.user.name,
+            city: info.city,
+            phone: S.user.phone,
+            specialty: info.specialty || "",
+            lat: info.lat || 35.7,
+            lng: info.lng || 51.4,
+            verified: true,
+            online: true
+        };
+        var r = await fetch(SB_URL + "/rest/v1/sellers", {
+            method: "POST",
+            headers: Object.assign({}, SB_HEADERS, { "Prefer": "return=representation" }),
+            body: JSON.stringify(payload)
+        });
+        var d = await r.json();
+        if(d && d[0]){
+            toast("فروشنده ثبت شد");
+            loadRealSellers();
+            return d[0];
+        }
+        toast("خطا در ثبت");
+        return null;
+    } catch(e) {
+        console.error(e);
+        toast("خطا: " + e.message);
+        return null;
+    }
+};
+
+/* ─── ثبت نظر واقعی ─── */
+window.submitReviewReal = async function(tid, tt, rating, text, tags){
+    try {
+        var r = await fetch(SB_URL + "/rest/v1/reviews", {
+            method: "POST",
+            headers: Object.assign({}, SB_HEADERS, { "Prefer": "return=representation" }),
+            body: JSON.stringify({
+                target_id: String(tid),
+                target_type: tt,
+                rating: rating,
+                text: text || "",
+                tags: tags || [],
+                user_code: String(Math.floor(1000 + Math.random() * 9000)),
+                is_anonymous: true
+            })
+        });
+        var d = await r.json();
+        if(d && d[0]){
+            toast("نظر ثبت شد");
+            return d[0];
+        }
+        return null;
+    } catch(e) {
+        console.error(e);
+        return null;
+    }
+};
+
+/* ─── لود نظرات واقعی ─── */
+window.loadRealReviews = async function(tid){
+    try {
+        var r = await fetch(SB_URL + "/rest/v1/reviews?target_id=eq." + tid + "&order=created_at.desc&limit=20", { headers: SB_HEADERS });
+        var d = await r.json();
+        return Array.isArray(d) ? d : [];
+    } catch(e) { return []; }
+};
+
+/* ─── ثبت نیاز به لوازم (واقعی) ─── */
+window.registerMaterialNeed = async function(info){
+    if(!S.user || !S.user.phone){ toast("شماره ثبت نشده"); return null; }
+    try {
+        var r = await fetch(SB_URL + "/rest/v1/material_needs", {
+            method: "POST",
+            headers: Object.assign({}, SB_HEADERS, { "Prefer": "return=representation" }),
+            body: JSON.stringify({
+                company_owner_id: S.user.id || null,
+                company_name: S.user.name,
+                company_city: info.city || "نامشخص",
+                materials: info.materials || [],
+                quantity: info.quantity || "",
+                urgency: info.urgency || "معمولی",
+                note: info.note || "",
+                status: "open"
+            })
+        });
+        var d = await r.json();
+        if(d && d[0]){
+            toast("نیاز ثبت شد");
+            return d[0];
+        }
+        return null;
+    } catch(e) {
+        console.error(e);
+        return null;
+    }
+};
+
+/* ─── لود نیازهای لوازم ─── */
+window.loadMaterialNeeds = async function(){
+    try {
+        var r = await fetch(SB_URL + "/rest/v1/material_needs?status=eq.open&order=created_at.desc&limit=50", { headers: SB_HEADERS });
+        var d = await r.json();
+        if(Array.isArray(d)){
+            S.realNeeds = d;
+            console.log("نیازها: " + d.length);
+        }
+        return d;
+    } catch(e) { return []; }
+};
+
+/* ─── ثبت آگهی استخدام (واقعی) ─── */
+window.registerJob = async function(info){
+    try {
+        var r = await fetch(SB_URL + "/rest/v1/jobs", {
+            method: "POST",
+            headers: Object.assign({}, SB_HEADERS, { "Prefer": "return=representation" }),
+            body: JSON.stringify({
+                company_owner_id: S.user.id || null,
+                types: info.types || [],
+                loole: info.loole || [],
+                level: info.level || "",
+                skill_required: info.skills || [],
+                experience: info.experience || 0,
+                count: info.count || 1,
+                duration: info.duration || 30,
+                rate_daily: info.rateDaily || 850000,
+                is_driver: info.isDriver || false,
+                benefits: info.benefits || [],
+                facilities: info.facilities || [],
+                safety_tools: info.safetyTools || [],
+                address: info.address || "",
+                city: info.city || "",
+                description: info.description || "",
+                status: "open"
+            })
+        });
+        var d = await r.json();
+        if(d && d[0]){
+            toast("آگهی ثبت شد");
+            return d[0];
+        }
+        return null;
+    } catch(e) {
+        console.error(e);
+        return null;
+    }
+};
+
+/* ─── لود آگهی‌های استخدام ─── */
+window.loadRealJobs = async function(){
+    try {
+        var r = await fetch(SB_URL + "/rest/v1/jobs?status=eq.open&order=created_at.desc&limit=50", { headers: SB_HEADERS });
+        var d = await r.json();
+        if(Array.isArray(d)){
+            S.realJobs = d;
+            console.log("آگهی‌ها: " + d.length);
+        }
+        return d;
+    } catch(e) { return []; }
+};
+
+/* ─── درخواست برای آگهی ─── */
+window.applyToJobReal = async function(jobId){
+    if(!S.user || !S.user.phone) return null;
+    try {
+        var r = await fetch(SB_URL + "/rest/v1/applications", {
+            method: "POST",
+            headers: Object.assign({}, SB_HEADERS, { "Prefer": "return=representation" }),
+            body: JSON.stringify({
+                job_id: jobId,
+                worker_owner_id: S.user.id || null,
+                worker_name: S.user.name,
+                worker_phone: S.user.phone,
+                worker_city: (S.user.baseLocation && S.user.baseLocation.city) || "نامشخص",
+                worker_level: (S.user.workerProfile && S.user.workerProfile.level) || "استادکار",
+                worker_years: (S.user.workerProfile && S.user.workerProfile.years) || 0,
+                status: "pending"
+            })
+        });
+        var d = await r.json();
+        if(d && d[0]){
+            toast("درخواست ثبت شد");
+            return d[0];
+        }
+        return null;
+    } catch(e) {
+        console.error(e);
+        return null;
+    }
+};
+
+console.log("[REAL] توابع واقعی لود شدند");
+
+
+/* ═══════════════════════════════════════════════
+   توابع واقعی — اتصال به Supabase
+   ═══════════════════════════════════════════════ */
+
+var SB_URL = "https://xruqejsaprromvvooqwg.supabase.co";
+var SB_KEY = window.SAZO_SUPABASE_KEY;
+var SB_HEADERS = {
+    "apikey": SB_KEY,
+    "Authorization": "Bearer " + SB_KEY,
+    "Content-Type": "application/json"
+};
+
+/* ─── لود شرکت‌های واقعی ─── */
+window.loadRealCompanies = async function(){
+    try {
+        var r = await fetch(SB_URL + "/rest/v1/companies?select=*&limit=100", { headers: SB_HEADERS });
+        var d = await r.json();
+        if(Array.isArray(d)){
+            S.realCompanies = d;
+            console.log("شرکت‌ها: " + d.length);
+        }
+    } catch(e) { console.warn(e); }
+};
+
+/* ─── لود کارگرهای واقعی ─── */
+window.loadRealWorkers = async function(){
+    try {
+        var r = await fetch(SB_URL + "/rest/v1/workers?select=*&limit=100", { headers: SB_HEADERS });
+        var d = await r.json();
+        if(Array.isArray(d)){
+            S.realWorkers = d;
+            console.log("کارگرها: " + d.length);
+        }
+    } catch(e) { console.warn(e); }
+};
+
+/* ─── لود فروشنده‌های واقعی ─── */
+window.loadRealSellers = async function(){
+    try {
+        var r = await fetch(SB_URL + "/rest/v1/sellers?select=*&limit=100", { headers: SB_HEADERS });
+        var d = await r.json();
+        if(Array.isArray(d)){
+            S.realSellers = d;
+            console.log("فروشنده‌ها: " + d.length);
+        }
+    } catch(e) { console.warn(e); }
+};
+
+/* ─── ثبت شرکت جدید ─── */
+window.registerAsCompany = async function(info){
+    if(!S.user || !S.user.phone){ toast("شماره ثبت نشده"); return null; }
+    try {
+        var payload = {
+            name: info.name,
+            city: info.city,
+            address: info.address || "",
+            phone: S.user.phone,
+            lat: info.lat || 35.7,
+            lng: info.lng || 51.4,
+            verified: true,
+            online: true
+        };
+        var r = await fetch(SB_URL + "/rest/v1/companies", {
+            method: "POST",
+            headers: Object.assign({}, SB_HEADERS, { "Prefer": "return=representation" }),
+            body: JSON.stringify(payload)
+        });
+        var d = await r.json();
+        if(d && d[0]){
+            toast("شرکت ثبت شد");
+            loadRealCompanies();
+            return d[0];
+        }
+        toast("خطا در ثبت");
+        return null;
+    } catch(e) {
+        console.error(e);
+        toast("خطا: " + e.message);
+        return null;
+    }
+};
+
+/* ─── ثبت کارگر جدید ─── */
+window.registerAsWorker = async function(info){
+    if(!S.user || !S.user.phone){ toast("شماره ثبت نشده"); return null; }
+    try {
+        var payload = {
+            name: info.name || S.user.name,
+            city: info.city,
+            phone: S.user.phone,
+            level: info.level || "استادکار",
+            years: info.years || 0,
+            lat: info.lat || 35.7,
+            lng: info.lng || 51.4,
+            skills: info.skills || [],
+            is_driver: info.isDriver || false,
+            verified: true,
+            online: true
+        };
+        var r = await fetch(SB_URL + "/rest/v1/workers", {
+            method: "POST",
+            headers: Object.assign({}, SB_HEADERS, { "Prefer": "return=representation" }),
+            body: JSON.stringify(payload)
+        });
+        var d = await r.json();
+        if(d && d[0]){
+            toast("کارگر ثبت شد");
+            loadRealWorkers();
+            return d[0];
+        }
+        toast("خطا در ثبت");
+        return null;
+    } catch(e) {
+        console.error(e);
+        toast("خطا: " + e.message);
+        return null;
+    }
+};
+
+/* ─── ثبت فروشنده جدید ─── */
+window.registerAsSeller = async function(info){
+    if(!S.user || !S.user.phone){ toast("شماره ثبت نشده"); return null; }
+    try {
+        var payload = {
+            name: info.name || S.user.name,
+            city: info.city,
+            phone: S.user.phone,
+            specialty: info.specialty || "",
+            lat: info.lat || 35.7,
+            lng: info.lng || 51.4,
+            verified: true,
+            online: true
+        };
+        var r = await fetch(SB_URL + "/rest/v1/sellers", {
+            method: "POST",
+            headers: Object.assign({}, SB_HEADERS, { "Prefer": "return=representation" }),
+            body: JSON.stringify(payload)
+        });
+        var d = await r.json();
+        if(d && d[0]){
+            toast("فروشنده ثبت شد");
+            loadRealSellers();
+            return d[0];
+        }
+        toast("خطا در ثبت");
+        return null;
+    } catch(e) {
+        console.error(e);
+        toast("خطا: " + e.message);
+        return null;
+    }
+};
+
+/* ─── ثبت نظر واقعی ─── */
+window.submitReviewReal = async function(tid, tt, rating, text, tags){
+    try {
+        var r = await fetch(SB_URL + "/rest/v1/reviews", {
+            method: "POST",
+            headers: Object.assign({}, SB_HEADERS, { "Prefer": "return=representation" }),
+            body: JSON.stringify({
+                target_id: String(tid),
+                target_type: tt,
+                rating: rating,
+                text: text || "",
+                tags: tags || [],
+                user_code: String(Math.floor(1000 + Math.random() * 9000)),
+                is_anonymous: true
+            })
+        });
+        var d = await r.json();
+        if(d && d[0]){
+            toast("نظر ثبت شد");
+            return d[0];
+        }
+        return null;
+    } catch(e) {
+        console.error(e);
+        return null;
+    }
+};
+
+/* ─── لود نظرات واقعی ─── */
+window.loadRealReviews = async function(tid){
+    try {
+        var r = await fetch(SB_URL + "/rest/v1/reviews?target_id=eq." + tid + "&order=created_at.desc&limit=20", { headers: SB_HEADERS });
+        var d = await r.json();
+        return Array.isArray(d) ? d : [];
+    } catch(e) { return []; }
+};
+
+/* ─── ثبت نیاز به لوازم (واقعی) ─── */
+window.registerMaterialNeed = async function(info){
+    if(!S.user || !S.user.phone){ toast("شماره ثبت نشده"); return null; }
+    try {
+        var r = await fetch(SB_URL + "/rest/v1/material_needs", {
+            method: "POST",
+            headers: Object.assign({}, SB_HEADERS, { "Prefer": "return=representation" }),
+            body: JSON.stringify({
+                company_owner_id: S.user.id || null,
+                company_name: S.user.name,
+                company_city: info.city || "نامشخص",
+                materials: info.materials || [],
+                quantity: info.quantity || "",
+                urgency: info.urgency || "معمولی",
+                note: info.note || "",
+                status: "open"
+            })
+        });
+        var d = await r.json();
+        if(d && d[0]){
+            toast("نیاز ثبت شد");
+            return d[0];
+        }
+        return null;
+    } catch(e) {
+        console.error(e);
+        return null;
+    }
+};
+
+/* ─── لود نیازهای لوازم ─── */
+window.loadMaterialNeeds = async function(){
+    try {
+        var r = await fetch(SB_URL + "/rest/v1/material_needs?status=eq.open&order=created_at.desc&limit=50", { headers: SB_HEADERS });
+        var d = await r.json();
+        if(Array.isArray(d)){
+            S.realNeeds = d;
+            console.log("نیازها: " + d.length);
+        }
+        return d;
+    } catch(e) { return []; }
+};
+
+/* ─── ثبت آگهی استخدام (واقعی) ─── */
+window.registerJob = async function(info){
+    try {
+        var r = await fetch(SB_URL + "/rest/v1/jobs", {
+            method: "POST",
+            headers: Object.assign({}, SB_HEADERS, { "Prefer": "return=representation" }),
+            body: JSON.stringify({
+                company_owner_id: S.user.id || null,
+                types: info.types || [],
+                loole: info.loole || [],
+                level: info.level || "",
+                skill_required: info.skills || [],
+                experience: info.experience || 0,
+                count: info.count || 1,
+                duration: info.duration || 30,
+                rate_daily: info.rateDaily || 850000,
+                is_driver: info.isDriver || false,
+                benefits: info.benefits || [],
+                facilities: info.facilities || [],
+                safety_tools: info.safetyTools || [],
+                address: info.address || "",
+                city: info.city || "",
+                description: info.description || "",
+                status: "open"
+            })
+        });
+        var d = await r.json();
+        if(d && d[0]){
+            toast("آگهی ثبت شد");
+            return d[0];
+        }
+        return null;
+    } catch(e) {
+        console.error(e);
+        return null;
+    }
+};
+
+/* ─── لود آگهی‌های استخدام ─── */
+window.loadRealJobs = async function(){
+    try {
+        var r = await fetch(SB_URL + "/rest/v1/jobs?status=eq.open&order=created_at.desc&limit=50", { headers: SB_HEADERS });
+        var d = await r.json();
+        if(Array.isArray(d)){
+            S.realJobs = d;
+            console.log("آگهی‌ها: " + d.length);
+        }
+        return d;
+    } catch(e) { return []; }
+};
+
+/* ─── درخواست برای آگهی ─── */
+window.applyToJobReal = async function(jobId){
+    if(!S.user || !S.user.phone) return null;
+    try {
+        var r = await fetch(SB_URL + "/rest/v1/applications", {
+            method: "POST",
+            headers: Object.assign({}, SB_HEADERS, { "Prefer": "return=representation" }),
+            body: JSON.stringify({
+                job_id: jobId,
+                worker_owner_id: S.user.id || null,
+                worker_name: S.user.name,
+                worker_phone: S.user.phone,
+                worker_city: (S.user.baseLocation && S.user.baseLocation.city) || "نامشخص",
+                worker_level: (S.user.workerProfile && S.user.workerProfile.level) || "استادکار",
+                worker_years: (S.user.workerProfile && S.user.workerProfile.years) || 0,
+                status: "pending"
+            })
+        });
+        var d = await r.json();
+        if(d && d[0]){
+            toast("درخواست ثبت شد");
+            return d[0];
+        }
+        return null;
+    } catch(e) {
+        console.error(e);
+        return null;
+    }
+};
+
+console.log("[REAL] توابع واقعی لود شدند");
+
+
+/* ═══ OTP دمو + واقعی (fallback) ═══ */
+
+
+
+
+function enterApp(){
+    S.user.verified = true;
+    LSs('sazo_user', S.user);
+    showScreen('identity');
+    var ih = document.getElementById('idHead');
+    if(ih){
+        var steps = [
+            { icon:'🎭', label:'نقش' },
+            { icon:'📱', label:'موبایل' },
+            { icon:'🔢', label:'کد' },
+            { icon:'🪪', label:'هویت' },
+            { icon:'💳', label:'بانک' }
+        ];
+        if(!ih.querySelector('.progress-steps')) 
+            ih.insertAdjacentHTML('afterbegin', renderProgress(steps, 3));
+    }
+}
+
+
+/* ═══ صفحه ثبت اطلاعات حرفه‌ای ═══ */
+window.openProfileSetup = function(){
+    var role = S.user.role;
+    var icon = { provider: '🏢', worker: '👷', seller: '🏪' }[role] || '📝';
+    var title = { provider: 'ثبت شرکت', worker: 'ثبت پروفایل کارگر', seller: 'ثبت فروشگاه' }[role] || 'تکمیل اطلاعات';
+    var desc = { 
+        provider: 'اطلاعات شرکتت رو وارد کن',
+        worker: 'مهارت‌ها و نرخ‌هات رو وارد کن',
+        seller: 'اطلاعات فروشگاهت رو وارد کن'
+    }[role] || 'اطلاعاتت رو وارد کن';
+    
+    document.getElementById('psIcon').textContent = icon;
+    document.getElementById('psTitle').textContent = title;
+    document.getElementById('psDesc').textContent = desc;
+    
+    var form = document.getElementById('psForm');
+    var html = '';
+    
+    if(role === 'provider'){
+        html = 
+            '<div class="fgroup"><label class="flabel">🏢 نام شرکت</label>' +
+            '<input class="finput" id="psName" placeholder="مثال: داربست‌بندی احمدی" value="' + (S.user.name || '') + '"></div>' +
+            '<div class="fgroup"><label class="flabel">🌍 شهر</label>' +
+            '<select class="fsel" id="psCity">' +
+            CITIES.map(function(c){ return '<option>' + c + '</option>'; }).join('') +
+            '</select></div>' +
+            '<div class="fgroup"><label class="flabel">📍 آدرس</label>' +
+            '<input class="finput" id="psAddress" placeholder="مثال: تهران، سعادت‌آباد"></div>' +
+            '<div class="fgroup"><label class="flabel">📝 توضیحات (اختیاری)</label>' +
+            '<textarea class="finput" rows="3" id="psDesc2" placeholder="درباره شرکتت بنویس..."></textarea></div>';
+    } else if(role === 'worker'){
+        html = 
+            '<div class="fgroup"><label class="flabel">👤 نام</label>' +
+            '<input class="finput" id="psName" value="' + (S.user.name || '') + '"></div>' +
+            '<div class="fgroup"><label class="flabel">🎯 سطح</label>' +
+            '<div class="chips" id="psLevel">' +
+            ['استادکار','نیمه‌ماهر','ساده'].map(function(l, i){ 
+                return '<div class="chip ' + (i === 0 ? 'active' : '') + '" onclick="chipSel(this);window._psLevel=\'' + l + '\'">' + l + '</div>'; 
+            }).join('') + '</div></div>' +
+            '<div class="fgroup"><label class="flabel">📅 سابقه (سال)</label>' +
+            '<input type="number" class="finput" id="psYears" value="5"></div>' +
+            '<div class="fgroup"><label class="flabel">🌍 شهر</label>' +
+            '<select class="fsel" id="psCity">' +
+            CITIES.map(function(c){ return '<option>' + c + '</option>'; }).join('') +
+            '</select></div>' +
+            '<div class="fgroup"><label class="flabel">🎯 مهارت‌ها</label>' +
+            '<div class="chips" id="psSkills">' +
+            ['فلزی','مدوالر','کفراژ','پله','صنعتی','چکشی'].map(function(s){ 
+                return '<div class="chip" onclick="this.classList.toggle(\'active\')">' + s + '</div>'; 
+            }).join('') + '</div></div>' +
+            '<div class="fgroup"><label class="flabel">💰 نرخ روزانه (تومان)</label>' +
+            '<input type="number" class="finput" id="psRate" value="850000"></div>' +
+            '<div class="fgroup"><label class="flabel">🚗 راننده هستی؟</label>' +
+            '<div class="chips" id="psDriver">' +
+            '<div class="chip active" onclick="chipSel(this);window._psDriver=false">❌ نه</div>' +
+            '<div class="chip" onclick="chipSel(this);window._psDriver=true">🚗 بله</div>' +
+            '</div></div>';
+        window._psLevel = 'استادکار';
+        window._psDriver = false;
+    } else if(role === 'seller'){
+        html = 
+            '<div class="fgroup"><label class="flabel">🏪 نام فروشگاه</label>' +
+            '<input class="finput" id="psName" value="' + (S.user.name || '') + '"></div>' +
+            '<div class="fgroup"><label class="flabel">🌍 شهر</label>' +
+            '<select class="fsel" id="psCity">' +
+            CITIES.map(function(c){ return '<option>' + c + '</option>'; }).join('') +
+            '</select></div>' +
+            '<div class="fgroup"><label class="flabel">📍 آدرس</label>' +
+            '<input class="finput" id="psAddress" placeholder="مثال: بازار تهران"></div>' +
+            '<div class="fgroup"><label class="flabel">📦 تخصص</label>' +
+            '<input class="finput" id="psSpecialty" placeholder="مثال: لوله، بست، ابزار"></div>' +
+            '<div class="fgroup"><label class="flabel">📝 توضیحات (اختیاری)</label>' +
+            '<textarea class="finput" rows="3" id="psDesc2"></textarea></div>';
+    }
+    
+    html += '<button class="abtn" onclick="saveProfileSetup()"><span class="ico-lb">✅</span><span>ثبت و ادامه</span></button>';
+    html += '<button class="btn bo" style="margin-top:.5rem" onclick="skipProfileSetup()"><span class="ico-lb">⏭️</span><span>بعداً</span></button>';
+    form.innerHTML = html;
+    
+    showScreen('profile-setup');
+};
+
+window.saveProfileSetup = async function(){
+    var role = S.user.role;
+    var name = (document.getElementById('psName') || {}).value || '';
+    var city = (document.getElementById('psCity') || {}).value || 'تهران';
+    
+    if(!name.trim()){ toast('نام رو وارد کن'); return; }
+    
+    toast('در حال ثبت...');
+    
+    var result = null;
+    if(role === 'provider'){
+        var address = (document.getElementById('psAddress') || {}).value || '';
+        result = await registerAsCompany({
+            name: name, city: city, address: address,
+            lat: 30 + Math.random() * 40, lng: 30 + Math.random() * 40
+        });
+    } else if(role === 'worker'){
+        var level = window._psLevel || 'استادکار';
+        var years = parseInt((document.getElementById('psYears') || {}).value) || 0;
+        var rate = parseInt((document.getElementById('psRate') || {}).value) || 850000;
+        var skills = [];
+        document.querySelectorAll('#psSkills .chip.active').forEach(function(el){ 
+            skills.push(el.textContent.trim()); 
+        });
+        var isDriver = window._psDriver || false;
+        result = await registerAsWorker({
+            name: name, city: city, level: level, years: years,
+            skills: skills, isDriver: isDriver,
+            lat: 30 + Math.random() * 40, lng: 30 + Math.random() * 40
+        });
+        if(result){
+            S.user.workerProfile = S.user.workerProfile || {};
+            S.user.workerProfile.level = level;
+            S.user.workerProfile.years = years;
+            S.user.workerProfile.skills = skills;
+            S.user.workerProfile.rates = S.user.workerProfile.rates || {};
+            S.user.workerProfile.rates.daily = rate;
+            S.user.workerProfile.isDriver = isDriver;
+            LSs('sazo_user', S.user);
+        }
+    } else if(role === 'seller'){
+        var address = (document.getElementById('psAddress') || {}).value || '';
+        var specialty = (document.getElementById('psSpecialty') || {}).value || '';
+        result = await registerAsSeller({
+            name: name, city: city, address: address, specialty: specialty,
+            lat: 30 + Math.random() * 40, lng: 30 + Math.random() * 40
+        });
+    }
+    
+    if(result){
+        showSuccessAnim(function(){ showScreen('home'); }, {
+            icon: '✅', msg: 'ثبت شد!', sub: 'حالا روی نقشه دیده می‌شی'
+        });
+    } else {
+        toast('خطا در ثبت — بعداً امتحان کن');
+    }
+};
+
+window.skipProfileSetup = function(){
+    showScreen('home');
+};
+
+/* ═══ Hook: بعد از ثبت‌نام، اگه provider/worker/seller بود، form رو باز کن ═══ */
+var _origEnterApp = window.enterApp;
+window.enterApp = function(){
+    if(typeof _origEnterApp === 'function') _origEnterApp();
+    // بعد از ثبت‌نام، فرم حرفه‌ای باز شه (نه identity)
+    setTimeout(function(){
+        if(S.user.role === 'provider' || S.user.role === 'worker' || S.user.role === 'seller'){
+            // بذار identity رد شه، بعد فرم
+        }
+    }, 1000);
+};
+
+
+/* ═══ رندر نقشه با داده‌های واقعی ═══ */
+window.renderMapReal = function(){
+    var pl = document.getElementById('pinsLayer');
+    if(!pl) return;
+    
+    var r = S.user.role;
+    var allItems = [];
+    
+    // جمع‌آوری داده‌های واقعی + دمو
+    var companies = (S.realCompanies && S.realCompanies.length > 0) ? S.realCompanies : (MOD() ? MOD().companies : []);
+    var workers = (S.realWorkers && S.realWorkers.length > 0) ? S.realWorkers : (MOD() ? MOD().workers : []);
+    var sellers = (S.realSellers && S.realSellers.length > 0) ? S.realSellers : (MOD() ? MOD().sellers : []);
+    
+    console.log('Map data — C:' + companies.length + ' W:' + workers.length + ' S:' + sellers.length);
+    
+    if(r === 'client' || r === 'worker'){
+        companies.forEach(function(c){
+            var lat = c.lat || c.latitude || (30 + Math.random() * 40);
+            var lng = c.lng || c.longitude || (30 + Math.random() * 40);
+            var el = document.createElement('div');
+            el.className = 'pin c';
+            el.style.left = lng + '%';
+            el.style.top = lat + '%';
+            el.innerHTML = '🏢';
+            el.onclick = function(){
+                if(c.id && c.name){
+                    // داده واقعی
+                    showCompanyInvReal(c);
+                } else {
+                    // داده دمو
+                    if(r === 'worker') showCompanyForWorker(c); else showCompanyInv(c);
+                }
+            };
+            pl.appendChild(el);
+        });
+    }
+    
+    if(r === 'provider'){
+        workers.forEach(function(w){
+            var lat = w.lat || (30 + Math.random() * 40);
+            var lng = w.lng || (30 + Math.random() * 40);
+            var el = document.createElement('div');
+            el.className = 'pin ' + (w.is_driver ? 'd' : 'w');
+            el.style.left = lng + '%';
+            el.style.top = lat + '%';
+            el.innerHTML = w.is_driver ? '🚗' : '👷';
+            el.onclick = function(){
+                if(w.id && w.name) showWorkerInvReal(w);
+                else showWorkerInv(w);
+            };
+            pl.appendChild(el);
+        });
+    }
+    
+    if(r === 'seller'){
+        companies.forEach(function(c){
+            var lat = c.lat || (30 + Math.random() * 40);
+            var lng = c.lng || (30 + Math.random() * 40);
+            var el = document.createElement('div');
+            el.className = 'pin c';
+            el.style.left = lng + '%';
+            el.style.top = lat + '%';
+            el.innerHTML = '🏢';
+            pl.appendChild(el);
+        });
+    }
+};
+
+/* ═══ نمایش شرکت واقعی ═══ */
+window.showCompanyInvReal = function(c){
+    var revealed = isRevealed(c.id);
+    var name = revealed ? c.name : 'شرکت داربست';
+    var phone = revealed ? c.phone : '🔒 بعد از کمیسیون';
+    var address = revealed ? (c.address || '') + ' ، ' + (c.city || '') : '📍 ' + (c.city || 'نامشخص');
+    
+    showSheet('<button class="cbtn" onclick="closeModal()">✕</button>' +
+        '<div class="stitle">🏢 ' + name + '</div>' +
+        '<div class="provider" style="border-color:var(--primary3);background:var(--plight);cursor:default">' +
+        '<div class="av c">🏢</div>' +
+        '<div class="info"><div class="name">' + name + '</div>' +
+        '<div class="meta">📍 ' + (c.city || 'نامشخص') + '</div>' +
+        '<div class="meta">' + address + '</div>' +
+        '<div class="meta">📞 ' + phone + '</div></div></div>' +
+        (!revealed ?
+            '<div class="gbox"><h4>💰 کمیسیون</h4>' +
+            '<div class="it">پرداخت ' + fmt(COMM) + ' تومان برای دیدن اطالعات تماس</div></div>' +
+            '<button class="btn bp" onclick="payComm('' + c.id + '','company')"><span class="ico-lb">💳</span><span>پرداخت و دیدن اطالعات</span></button>' :
+            '<div class="sbox"><h4 style="color:var(--success)">✅ اطالعات باز شده</h4>' +
+            '<div class="it" style="color:var(--success)">شماره: ' + c.phone + '</div></div>') +
+        '<button class="btn bo" onclick="closeModal()">بستن</button>');
+};
+
+/* ═══ نمایش کارگر واقعی ═══ */
+window.showWorkerInvReal = function(w){
+    var revealed = isRevealed(w.id);
+    var name = revealed ? w.name : 'کارگر داربستی';
+    showSheet('<button class="cbtn" onclick="closeModal()">✕</button>' +
+        '<div class="stitle">' + (w.is_driver ? '🚗' : '👷') + ' ' + name + '</div>' +
+        '<div class="provider" style="cursor:default">' +
+        '<div class="av ' + (w.is_driver ? 'd' : 'w') + '">' + (w.is_driver ? '🚗' : '👷') + '</div>' +
+        '<div class="info"><div class="name">' + name + '</div>' +
+        '<div class="meta">' + (w.level || 'استادکار') + ' • ' + toFa(w.years || 0) + ' سال</div>' +
+        '<div class="meta">📍 ' + (w.city || 'نامشخص') + '</div></div></div>' +
+        (!revealed ?
+            '<div class="gbox"><h4>💰 کمیسیون</h4>' +
+            '<div class="it">پرداخت ' + fmt(COMM) + ' تومان</div></div>' +
+            '<button class="btn bp" onclick="payComm('' + w.id + '','worker')"><span class="ico-lb">💳</span><span>پرداخت</span></button>' :
+            '<div class="sbox"><h4 style="color:var(--success)">✅ اطالعات باز شده</h4>' +
+            '<div class="it" style="color:var(--success)">شماره: ' + w.phone + '</div></div>') +
+        '<button class="btn bo" onclick="closeModal()">بستن</button>');
+};
+
+
+/* ═══ OTP دمو — بدون نیاز به کاوه‌نگار ═══ */
+window.sendOTP = function(){
+    var pEl = document.getElementById('phoneInput');
+    var p = pEl ? pEl.value.trim() : '';
+    if(!p){ toast('شماره رو وارد کن'); return; }
+    
+    var cleanPhone = p.replace(/[^0-9]/g, '');
+    if(cleanPhone.length === 10 && cleanPhone.charAt(0) === '9'){
+        cleanPhone = '0' + cleanPhone;
+    } else if(cleanPhone.length === 12 && cleanPhone.substring(0,2) === '98'){
+        cleanPhone = '0' + cleanPhone.substring(2);
+    }
+    
+    if(!/^09[0-9]{9}$/.test(cleanPhone)){
+        toast('شماره نامعتبر — مثال: 9123456789');
+        return;
+    }
+    
+    S.user.phone = cleanPhone;
+    var invEl = document.getElementById('inviteInput');
+    if(invEl && invEl.value.trim()) S.user.invitedBy = invEl.value.trim().toUpperCase();
+    
+    var disp = document.getElementById('otpDisplay');
+    if(disp) disp.textContent = 'کد دمو به ' + cleanPhone + ' فرستاده شد';
+    
+    showScreen('otp');
+    
+    // پر کردن خودکار با کد دمو
+    setTimeout(function(){
+        var inp = document.getElementById('otpSingle');
+        if(inp){ 
+            inp.value = '123456'; 
+            inp.classList.add('filled'); 
+            inp.style.borderColor = '#15803D';
+            inp.style.background = '#DCFCE7';
+        }
+        toast('کد دمو: 123456');
+    }, 300);
+    
+    // Progress steps
+    var oh = document.getElementById('otpHead');
+    if(oh){
+        var regSteps = [
+            { icon:'🎭', label:'نقش' },{ icon:'📱', label:'موبایل' },
+            { icon:'🔢', label:'کد' },{ icon:'🪪', label:'هویت' },
+            { icon:'💳', label:'بانک' }
+        ];
+        if(!oh.querySelector('.progress-steps')) 
+            oh.insertAdjacentHTML('afterbegin', renderProgress(regSteps, 2));
+    }
+};
+
+window.verifyOTP = function(){
+    var code = '';
+    var el = document.getElementById('otpSingle');
+    if(el) code = (el.value || '').replace(/[^0-9]/g, '');
+    
+    if(code.length < 6){ 
+        toast('کد کامل نیست — ' + code.length + ' رقم'); 
+        return; 
+    }
+    
+    // ✅ کد دمو همیشه کار می‌کنه
+    if(code === '123456'){
+        toast('کد دمو تایید شد');
+        S.user.verified = true;
+        LSs('sazo_user', S.user);
+        
         showScreen('identity');
         var ih = document.getElementById('idHead');
         if(ih){
-            var regSteps = [{ icon:'🎭', label:'نقش' },{ icon:'📱', label:'موبایل' },{ icon:'🔢', label:'کد' },{ icon:'🪪', label:'هویت' },{ icon:'💳', label:'بانک' }];
-            if(!ih.querySelector('.progress-steps')) ih.insertAdjacentHTML('afterbegin', renderProgress(regSteps, 3));
+            var regSteps = [
+                { icon:'🎭', label:'نقش' },{ icon:'📱', label:'موبایل' },
+                { icon:'🔢', label:'کد' },{ icon:'🪪', label:'هویت' },
+                { icon:'💳', label:'بانک' }
+            ];
+            if(!ih.querySelector('.progress-steps')) 
+                ih.insertAdjacentHTML('afterbegin', renderProgress(regSteps, 3));
         }
-        toast('✅ تایید شد');
-    } catch(e) {
-        console.error('verifyOTP error:', e);
-        toast('❌ خطا در اتصال');
+        return;
     }
-};
-
-/* ─── کارت به کارت ─── */
-window.copyCardNumber = function(){
-    var card = window.SAZO_PAYMENT.card.replace(/[-\s]/g, '');
-    if(navigator.clipboard){
-        navigator.clipboard.writeText(card).then(function(){
-            toast('✅ شماره کارت کپی شد');
-        }).catch(function(){
-            toast('📋 ' + card);
-        });
-    } else {
-        toast('📋 ' + card);
-    }
-};
-
-window.submitManualPayment = async function(){
-    var amountEl = document.getElementById('chargeAmt');
-    var trackingEl = document.getElementById('trackingNum');
-    var amount = parseFloat(amountEl ? amountEl.value : 0) || 0;
-    var tracking = trackingEl ? trackingEl.value.trim() : '';
-    if(amount < 100000){ toast('⚠️ حداقل ۱۰۰,۰۰۰ تومان'); return; }
-    if(!tracking || tracking.length < 4){ toast('⚠️ شماره پیگیری رو وارد کن'); return; }
-    if(!S.user || !S.user.phone){ toast('⚠️ شماره‌ت ثبت نشده'); return; }
-    var btn = event && event.target ? event.target : null;
-    if(btn){ btn.disabled = true; btn.style.opacity = '.6'; }
-    try {
-        var resp = await fetch('https://xruqejsaprromvvooqwg.supabase.co/rest/v1/manual_payments', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'apikey': window.SAZO_SUPABASE_KEY,
-                'Authorization': 'Bearer ' + window.SAZO_SUPABASE_KEY,
-                'Prefer': 'return=representation'
-            },
-            body: JSON.stringify({
-                user_phone: S.user.phone,
-                user_name: S.user.name,
-                amount: amount,
-                tracking_number: tracking,
-                status: 'pending'
-            })
-        });
-        if(!resp.ok){
-            var err = await resp.text();
-            console.error('Submit error:', err);
-            toast('❌ خطا در ارسال');
-            if(btn){ btn.disabled = false; btn.style.opacity = '1'; }
-            return;
-        }
-        showSuccessAnim(function(){ closeModal(); }, {
-            icon: '📤',
-            msg: 'درخواست ثبت شد!',
-            sub: 'بعد از تایید، پول به کیف پولت اضافه می‌شه'
-        });
-    } catch(e) {
-        console.error('Manual payment error:', e);
-        toast('❌ خطا در اتصال');
-        if(btn){ btn.disabled = false; btn.style.opacity = '1'; }
-    }
-};
-
-window.showMyPayments = async function(){
-    if(!S.user || !S.user.phone) return;
-    try {
-        var resp = await fetch('https://xruqejsaprromvvooqwg.supabase.co/rest/v1/manual_payments?user_phone=eq.' + S.user.phone + '&order=created_at.desc&limit=10', {
-            headers: {
-                'apikey': window.SAZO_SUPABASE_KEY,
-                'Authorization': 'Bearer ' + window.SAZO_SUPABASE_KEY
-            }
-        });
-        var data = await resp.json();
-        if(!data || data.length === 0){
-            showSheet('<button class="cbtn" onclick="closeModal()">✕</button><div class="stitle">📜 تاریخچه</div><div class="empty"><div class="ic">📜</div><p>هنوز درخواستی نداری</p></div><button class="btn bo" onclick="closeModal()">بستن</button>');
-            return;
-        }
-        var html = '<button class="cbtn" onclick="closeModal()">✕</button><div class="stitle">📜 درخواست‌های من</div>';
-        data.forEach(function(p){
-            var statusText = p.status === 'pending' ? '⏳ در انتظار' : p.status === 'approved' ? '✅ تایید شده' : '❌ رد شده';
-            var statusColor = p.status === 'pending' ? 'var(--warning)' : p.status === 'approved' ? 'var(--success)' : 'var(--error)';
-            html += '<div class="card" style="padding:.75rem;margin-bottom:.4rem">' +
-                '<div style="font-size:.9rem;font-weight:900;color:var(--primary3)">' + fmt(p.amount) + ' تومان</div>' +
-                '<div style="font-size:.75rem;color:var(--text2);margin-top:.2rem">📝 پیگیری: ' + p.tracking_number + '</div>' +
-                '<div style="font-size:.75rem;color:var(--text2);margin-top:.2rem">📅 ' + fdt(p.created_at) + '</div>' +
-                '<div style="font-size:.8rem;font-weight:900;color:' + statusColor + ';margin-top:.3rem">' + statusText + '</div>' +
-                (p.admin_note ? '<div style="font-size:.7rem;color:var(--text2);margin-top:.2rem">📝 ' + p.admin_note + '</div>' : '') +
-                '</div>';
-        });
-        html += '<button class="btn bo" onclick="closeModal()">بستن</button>';
-        showSheet(html);
-    } catch(e) {
-        console.error(e);
-        toast('❌ خطا در دریافت');
-    }
-};
-
-window.syncWallet = async function(){
-    if(!S.user || !S.user.phone) return;
-    try {
-        var resp = await fetch('https://xruqejsaprromvvooqwg.supabase.co/rest/v1/phone_balances?phone=eq.' + S.user.phone, {
-            headers: {
-                'apikey': window.SAZO_SUPABASE_KEY,
-                'Authorization': 'Bearer ' + window.SAZO_SUPABASE_KEY
-            }
-        });
-        var data = await resp.json();
-        if(data && data.length > 0 && data[0].balance){
-            S.wallet.balance = data[0].balance;
-            LSs('sazo_user', S.user);
-        }
-    } catch(e) { console.error('syncWallet:', e); }
-};
-
-window.syncWalletAndRefresh = async function(){
-    await syncWallet();
-    if(typeof renderHome === 'function') renderHome();
-    if(typeof renderMe === 'function') renderMe();
-    toast('🔄 کیف پول بروزرسانی شد');
+    
+    toast('کد نامعتبر — کد دمو: 123456');
 };
 
 
-/* ─── کارت به کارت ─── */
-window.copyCardNumber = function(){
-    var card = window.SAZO_PAYMENT.card.replace(/[-\s]/g, '');
-    if(navigator.clipboard){
-        navigator.clipboard.writeText(card).then(function(){
-            toast('✅ شماره کارت کپی شد');
-        }).catch(function(){
-            toast('📋 ' + card);
-        });
-    } else {
-        toast('📋 ' + card);
-    }
-};
-
-window.submitManualPayment = async function(){
-    var amountEl = document.getElementById('chargeAmt');
-    var trackingEl = document.getElementById('trackingNum');
-    var amount = parseFloat(amountEl ? amountEl.value : 0) || 0;
-    var tracking = trackingEl ? trackingEl.value.trim() : '';
-    if(amount < 100000){ toast('⚠️ حداقل ۱۰۰,۰۰۰ تومان'); return; }
-    if(!tracking || tracking.length < 4){ toast('⚠️ شماره پیگیری رو وارد کن'); return; }
-    if(!S.user || !S.user.phone){ toast('⚠️ شماره‌ت ثبت نشده'); return; }
-    var btn = event && event.target ? event.target : null;
-    if(btn){ btn.disabled = true; btn.style.opacity = '.6'; }
-    try {
-        var resp = await fetch('https://xruqejsaprromvvooqwg.supabase.co/rest/v1/manual_payments', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'apikey': window.SAZO_SUPABASE_KEY,
-                'Authorization': 'Bearer ' + window.SAZO_SUPABASE_KEY,
-                'Prefer': 'return=representation'
-            },
-            body: JSON.stringify({
-                user_phone: S.user.phone,
-                user_name: S.user.name,
-                amount: amount,
-                tracking_number: tracking,
-                status: 'pending'
-            })
-        });
-        if(!resp.ok){
-            var err = await resp.text();
-            console.error('Submit error:', err);
-            toast('❌ خطا در ارسال');
-            if(btn){ btn.disabled = false; btn.style.opacity = '1'; }
-            return;
-        }
-        showSuccessAnim(function(){ closeModal(); }, {
-            icon: '📤',
-            msg: 'درخواست ثبت شد!',
-            sub: 'بعد از تایید، پول به کیف پولت اضافه می‌شه'
-        });
-    } catch(e) {
-        console.error('Manual payment error:', e);
-        toast('❌ خطا در اتصال');
-        if(btn){ btn.disabled = false; btn.style.opacity = '1'; }
-    }
-};
-
-window.showMyPayments = async function(){
-    if(!S.user || !S.user.phone) return;
-    try {
-        var resp = await fetch('https://xruqejsaprromvvooqwg.supabase.co/rest/v1/manual_payments?user_phone=eq.' + S.user.phone + '&order=created_at.desc&limit=10', {
-            headers: {
-                'apikey': window.SAZO_SUPABASE_KEY,
-                'Authorization': 'Bearer ' + window.SAZO_SUPABASE_KEY
-            }
-        });
-        var data = await resp.json();
-        if(!data || data.length === 0){
-            showSheet('<button class="cbtn" onclick="closeModal()">✕</button><div class="stitle">📜 تاریخچه</div><div class="empty"><div class="ic">📜</div><p>هنوز درخواستی نداری</p></div><button class="btn bo" onclick="closeModal()">بستن</button>');
-            return;
-        }
-        var html = '<button class="cbtn" onclick="closeModal()">✕</button><div class="stitle">📜 درخواست‌های من</div>';
-        data.forEach(function(p){
-            var statusText = p.status === 'pending' ? '⏳ در انتظار' : p.status === 'approved' ? '✅ تایید شده' : '❌ رد شده';
-            var statusColor = p.status === 'pending' ? 'var(--warning)' : p.status === 'approved' ? 'var(--success)' : 'var(--error)';
-            html += '<div class="card" style="padding:.75rem;margin-bottom:.4rem">' +
-                '<div style="font-size:.9rem;font-weight:900;color:var(--primary3)">' + fmt(p.amount) + ' تومان</div>' +
-                '<div style="font-size:.75rem;color:var(--text2);margin-top:.2rem">📝 پیگیری: ' + p.tracking_number + '</div>' +
-                '<div style="font-size:.75rem;color:var(--text2);margin-top:.2rem">📅 ' + fdt(p.created_at) + '</div>' +
-                '<div style="font-size:.8rem;font-weight:900;color:' + statusColor + ';margin-top:.3rem">' + statusText + '</div>' +
-                (p.admin_note ? '<div style="font-size:.7rem;color:var(--text2);margin-top:.2rem">📝 ' + p.admin_note + '</div>' : '') +
-                '</div>';
-        });
-        html += '<button class="btn bo" onclick="closeModal()">بستن</button>';
-        showSheet(html);
-    } catch(e) {
-        console.error(e);
-        toast('❌ خطا در دریافت');
-    }
-};
-
-window.syncWallet = async function(){
-    if(!S.user || !S.user.phone) return;
-    try {
-        var resp = await fetch('https://xruqejsaprromvvooqwg.supabase.co/rest/v1/phone_balances?phone=eq.' + S.user.phone, {
-            headers: {
-                'apikey': window.SAZO_SUPABASE_KEY,
-                'Authorization': 'Bearer ' + window.SAZO_SUPABASE_KEY
-            }
-        });
-        var data = await resp.json();
-        if(data && data.length > 0 && data[0].balance){
-            S.wallet.balance = data[0].balance;
-            LSs('sazo_user', S.user);
-        }
-    } catch(e) { console.error('syncWallet:', e); }
-};
-
-window.syncWalletAndRefresh = async function(){
-    await syncWallet();
-    if(typeof renderHome === 'function') renderHome();
-    if(typeof renderMe === 'function') renderMe();
-    toast('🔄 کیف پول بروزرسانی شد');
-};
-
-</script>
 </body>
 </html>
