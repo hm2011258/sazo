@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>پنل مدیریت سازو</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Vazir,Tahoma,sans-serif;background:#0F172A;color:#F1F5F9;padding:1rem;line-height:1.6}
+.login{max-width:400px;margin:4rem auto;background:#1E293B;padding:2rem;border-radius:1rem;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.login h1{font-size:1.3rem;margin-bottom:.5rem;text-align:center;color:#60A5FA}
+.login p{font-size:.85rem;text-align:center;color:#94A3B8;margin-bottom:1.5rem}
+input{width:100%;padding:.9rem;border:2px solid #334155;border-radius:.6rem;background:#0F172A;color:#F1F5F9;font-size:1rem;margin-bottom:.8rem}
+input:focus{outline:none;border-color:#3B82F6}
+button{width:100%;padding:.9rem;border:none;border-radius:.6rem;background:linear-gradient(135deg,#3B82F6,#1E40AF);color:#fff;font-size:1rem;font-weight:700;cursor:pointer}
+button:active{transform:scale(.98)}
+button.danger{background:#DC2626}
+button.success{background:#15803D}
+button.warn{background:#B45309}
+.container{max-width:900px;margin:0 auto}
+.header{display:flex;justify-content:space-between;align-items:center;padding:1rem;background:#1E293B;border-radius:1rem;margin-bottom:1rem}
+.header h1{font-size:1.1rem;color:#60A5FA}
+.header button{width:auto;padding:.5rem 1rem;font-size:.85rem;background:#DC2626}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.8rem;margin-bottom:1rem}
+.stat{background:#1E293B;padding:1rem;border-radius:.7rem;text-align:center}
+.stat .num{font-size:1.5rem;font-weight:900;color:#60A5FA}
+.stat .lbl{font-size:.75rem;color:#94A3B8;margin-top:.3rem}
+.tabs{display:flex;gap:.4rem;margin-bottom:1rem;overflow-x:auto}
+.tab{padding:.6rem 1rem;background:#1E293B;border-radius:.5rem;cursor:pointer;white-space:nowrap;font-size:.85rem;font-weight:700}
+.tab.active{background:#3B82F6;color:#fff}
+.card{background:#1E293B;padding:1rem;border-radius:.7rem;margin-bottom:.6rem;border-left:4px solid #3B82F6}
+.card.pending{border-left-color:#F59E0B}
+.card.approved{border-left-color:#15803D}
+.card.rejected{border-left-color:#DC2626}
+.card .title{font-size:1rem;font-weight:900;margin-bottom:.3rem}
+.card .meta{font-size:.8rem;color:#94A3B8;margin-bottom:.2rem}
+.card .actions{display:flex;gap:.5rem;margin-top:.7rem}
+.card .actions button{flex:1;padding:.6rem;font-size:.85rem}
+.empty{text-align:center;padding:2rem;color:#94A3B8;font-size:.9rem}
+.loading{text-align:center;padding:2rem;color:#60A5FA}
+.toast{position:fixed;top:1rem;left:50%;transform:translateX(-50%) translateY(-200%);background:#1E40AF;color:#fff;padding:.8rem 1.5rem;border-radius:99px;z-index:9999;transition:transform .3s;font-size:.9rem;font-weight:700}
+.toast.show{transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<div id="loginScreen" class="login">
+<h1>🔐 پنل مدیریت سازو</h1>
+<p>فقط برای مدیر سیستم</p>
+<input type="password" id="passwordInput" placeholder="رمز عبور مدیر" onkeypress="if(event.key==='Enter')tryLogin()">
+<button onclick="tryLogin()">ورود</button>
+</div>
+
+<div id="adminPanel" style="display:none">
+<div class="container">
+<div class="header">
+<h1>🎛️ پنل مدیریت سازو</h1>
+<button onclick="logout()">خروج</button>
+</div>
+
+<div class="stats" id="stats"></div>
+
+<div class="tabs">
+<div class="tab active" data-status="pending" onclick="switchTab(this)">⏳ در انتظار</div>
+<div class="tab" data-status="approved" onclick="switchTab(this)">✅ تایید شده</div>
+<div class="tab" data-status="rejected" onclick="switchTab(this)">❌ رد شده</div>
+</div>
+
+<div id="content"><div class="loading">در حال بارگذاری...</div></div>
+</div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://xruqejsaprromvvooqwg.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhydXFlanNhcHJyb212dm9vcXdnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAyNjcyMjYsImV4cCI6MjEwNTg0MzIyNn0.-Ip3XBgLMs2v1MoPOpOvNKKhVhSv1KgnBN458eE9XHo';
+
+// ⚠️ رمز مدیر رو اینجا عوض کن
+const ADMIN_PASSWORD = 'Hossein@2026';
+
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let currentStatus = 'pending';
+
+function toast(msg){
+    var t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(function(){ t.classList.remove('show'); }, 3000);
+}
+
+function tryLogin(){
+    var p = document.getElementById('passwordInput').value;
+    if(p === ADMIN_PASSWORD){
+        localStorage.setItem('sazo_admin_auth', '1');
+        showPanel();
+    } else {
+        toast('❌ رمز اشتباه');
+    }
+}
+
+function logout(){
+    localStorage.removeItem('sazo_admin_auth');
+    location.reload();
+}
+
+function showPanel(){
+    document.getElementById('loginScreen').style.display = 'none';
+    document.getElementById('adminPanel').style.display = 'block';
+    loadStats();
+    loadRequests();
+}
+
+function switchTab(el){
+    document.querySelectorAll('.tab').forEach(function(t){ t.classList.remove('active'); });
+    el.classList.add('active');
+    currentStatus = el.dataset.status;
+    loadRequests();
+}
+
+async function loadStats(){
+    try {
+        var { data: all } = await supabase.from('manual_payments').select('*');
+        var pending = all.filter(function(p){ return p.status === 'pending'; }).length;
+        var approved = all.filter(function(p){ return p.status === 'approved'; }).length;
+        var rejected = all.filter(function(p){ return p.status === 'rejected'; }).length;
+        
+        var totalCharged = all.filter(function(p){ 
+            return p.status === 'approved' && p.type !== 'withdraw'; 
+        }).reduce(function(s,p){ return s + (p.amount || 0); }, 0);
+        
+        document.getElementById('stats').innerHTML = 
+            '<div class="stat"><div class="num">' + pending + '</div><div class="lbl">⏳ در انتظار</div></div>' +
+            '<div class="stat"><div class="num">' + approved + '</div><div class="lbl">✅ تایید شده</div></div>' +
+            '<div class="stat"><div class="num">' + rejected + '</div><div class="lbl">❌ رد شده</div></div>' +
+            '<div class="stat"><div class="num">' + fmt(totalCharged) + '</div><div class="lbl">💰 کل شارژ</div></div>';
+    } catch(e){
+        console.error(e);
+    }
+}
+
+function fmt(n){
+    return (n || 0).toLocaleString('fa-IR');
+}
+
+function fdt(ts){
+    try { return new Date(ts).toLocaleString('fa-IR'); } catch(e){ return '—'; }
+}
+
+async function loadRequests(){
+    var content = document.getElementById('content');
+    content.innerHTML = '<div class="loading">در حال بارگذاری...</div>';
+    
+    try {
+        var { data, error } = await supabase
+            .from('manual_payments')
+            .select('*')
+            .eq('status', currentStatus)
+            .order('created_at', { ascending: false })
+            .limit(50);
+        
+        if(error){
+            content.innerHTML = '<div class="empty">خطا: ' + error.message + '</div>';
+            return;
+        }
+        
+        if(!data || data.length === 0){
+            content.innerHTML = '<div class="empty">📭 هیچ درخواستی در این بخش نیست</div>';
+            return;
+        }
+        
+        var html = '';
+        data.forEach(function(p){
+            var isWithdraw = p.type === 'withdraw';
+            var typeIcon = isWithdraw ? '🏧' : '💳';
+            var typeText = isWithdraw ? 'برداشت' : 'شارژ';
+            
+            html += '<div class="card ' + p.status + '">' +
+                '<div class="title">' + typeIcon + ' ' + typeText + ' — ' + fmt(p.amount) + ' تومان</div>' +
+                '<div class="meta">👤 ' + (p.user_name || '—') + '</div>' +
+                '<div class="meta">📱 ' + (p.user_phone || '—') + '</div>' +
+                '<div class="meta">📝 ' + (p.tracking_number || '—') + '</div>' +
+                '<div class="meta">📅 ' + fdt(p.created_at) + '</div>' +
+                (p.admin_note ? '<div class="meta" style="color:#F59E0B">💬 ' + p.admin_note + '</div>' : '') +
+                (p.status === 'pending' ?
+                    '<div class="actions">' +
+                    '<button class="success" onclick="approveReq(\'' + p.id + '\')">✅ تایید</button>' +
+                    '<button class="danger" onclick="rejectReq(\'' + p.id + '\')">❌ رد</button>' +
+                    '</div>' : '') +
+                '</div>';
+        });
+        
+        content.innerHTML = html;
+    } catch(e){
+        content.innerHTML = '<div class="empty">خطا: ' + e.message + '</div>';
+    }
+}
+
+async function approveReq(id){
+    if(!confirm('این درخواست رو تایید می‌کنی؟')) return;
+    try {
+        var { error } = await supabase
+            .from('manual_payments')
+            .update({ status: 'approved' })
+            .eq('id', id);
+        
+        if(error){ toast('❌ ' + error.message); return; }
+        toast('✅ تایید شد — پول خودکار اضافه شد');
+        loadStats();
+        loadRequests();
+    } catch(e){
+        toast('❌ خطا');
+    }
+}
+
+async function rejectReq(id){
+    var note = prompt('دلیل رد (اختیاری):');
+    if(note === null) return;
+    try {
+        var { error } = await supabase
+            .from('manual_payments')
+            .update({ status: 'rejected', admin_note: note || 'رد شده' })
+            .eq('id', id);
+        
+        if(error){ toast('❌ ' + error.message); return; }
+        toast('❌ رد شد');
+        loadStats();
+        loadRequests();
+    } catch(e){
+        toast('❌ خطا');
+    }
+}
+
+// Auto-login اگه قبلاً لاگین کرده
+if(localStorage.getItem('sazo_admin_auth') === '1'){
+    showPanel();
+}
+</script>
+</body>
+</html>
