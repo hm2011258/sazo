@@ -1980,7 +1980,7 @@ if(!ph.querySelector('.progress-steps')) ph.insertAdjacentHTML('afterbegin', ren
 </script>
 <script>
 
-window.resendOTP = function(){ toast('✅ کد مجدد فرستاده شد'); speak('کد مجدد فرستاده شد'); };
+;
 
 
 
@@ -6522,10 +6522,7 @@ window.showWorkerInvReal = function(w){
 
 
 /* ═══ OTP دمو — بدون نیاز به کاوه‌نگار ═══ */
-window.sendOTP = function(){
-    var pEl = document.getElementById('phoneInput');
-    var p = pEl ? pEl.value.trim() : '';
-    if(!p){ toast('شماره رو وارد کن'); return; }
+
     
     var cleanPhone = p.replace(/[^0-9]/g, '');
     if(cleanPhone.length === 10 && cleanPhone.charAt(0) === '9'){
@@ -6573,15 +6570,7 @@ window.sendOTP = function(){
     }
 };
 
-window.verifyOTP = function(){
-    var code = '';
-    var el = document.getElementById('otpSingle');
-    if(el) code = (el.value || '').replace(/[^0-9]/g, '');
-    
-    if(code.length < 6){ 
-        toast('کد کامل نیست — ' + code.length + ' رقم'); 
-        return; 
-    }
+
     
     // ✅ کد دمو همیشه کار می‌کنه
     if(code === '123456'){
@@ -6605,6 +6594,116 @@ window.verifyOTP = function(){
     
     toast('کد نامعتبر — کد دمو: 123456');
 };
+
+
+
+/* ═══════════════════════════════════════════
+   OTP کاملاً دمو — بدون هیچ اتصال شبکه‌ای
+   ═══════════════════════════════════════════ */
+window.sendOTP = function(){
+    try {
+        var pEl = document.getElementById('phoneInput');
+        var p = pEl ? pEl.value.trim() : '';
+        if(!p){ toast('شماره رو وارد کن'); return; }
+        
+        var cleanPhone = p.replace(/[^0-9]/g, '');
+        if(cleanPhone.length === 10 && cleanPhone.charAt(0) === '9'){
+            cleanPhone = '0' + cleanPhone;
+        } else if(cleanPhone.length === 12 && cleanPhone.substring(0,2) === '98'){
+            cleanPhone = '0' + cleanPhone.substring(2);
+        }
+        
+        if(!/^09[0-9]{9}$/.test(cleanPhone)){
+            toast('شماره نامعتبر — مثال: 9123456789');
+            return;
+        }
+        
+        S.user.phone = cleanPhone;
+        var invEl = document.getElementById('inviteInput');
+        if(invEl && invEl.value.trim()) S.user.invitedBy = invEl.value.trim().toUpperCase();
+        
+        var disp = document.getElementById('otpDisplay');
+        if(disp) disp.textContent = 'کد دمو: 123456';
+        
+        showScreen('otp');
+        
+        // Progress
+        var oh = document.getElementById('otpHead');
+        if(oh){
+            var regSteps = [
+                { icon:'🎭', label:'نقش' },{ icon:'📱', label:'موبایل' },
+                { icon:'🔢', label:'کد' },{ icon:'🪪', label:'هویت' },
+                { icon:'💳', label:'بانک' }
+            ];
+            if(!oh.querySelector('.progress-steps')) 
+                oh.insertAdjacentHTML('afterbegin', renderProgress(regSteps, 2));
+        }
+        
+        // پر کردن خودکار کد
+        setTimeout(function(){
+            var inp = document.getElementById('otpSingle');
+            if(inp){ 
+                inp.value = '123456'; 
+                inp.classList.add('filled'); 
+                inp.style.borderColor = '#15803D';
+                inp.style.background = '#DCFCE7';
+                inp.style.color = '#15803D';
+            }
+            toast('کد دمو: 123456');
+        }, 300);
+        
+    } catch(e) {
+        console.error('sendOTP error:', e);
+        toast('خطا: ' + e.message);
+    }
+};
+
+window.verifyOTP = function(){
+    try {
+        var code = '';
+        var el = document.getElementById('otpSingle');
+        if(el) code = (el.value || '').replace(/[^0-9]/g, '');
+        
+        if(code.length < 6){ 
+            toast('کد کامل نیست — ' + code.length + ' رقم'); 
+            return; 
+        }
+        
+        if(code === '123456'){
+            toast('کد تایید شد');
+            S.user.verified = true;
+            LSs('sazo_user', S.user);
+            
+            setTimeout(function(){
+                showScreen('identity');
+                var ih = document.getElementById('idHead');
+                if(ih){
+                    var regSteps = [
+                        { icon:'🎭', label:'نقش' },{ icon:'📱', label:'موبایل' },
+                        { icon:'🔢', label:'کد' },{ icon:'🪪', label:'هویت' },
+                        { icon:'💳', label:'بانک' }
+                    ];
+                    if(!ih.querySelector('.progress-steps')) 
+                        ih.insertAdjacentHTML('afterbegin', renderProgress(regSteps, 3));
+                }
+            }, 300);
+            return;
+        }
+        
+        toast('کد نامعتبر — کد دمو: 123456');
+    } catch(e) {
+        console.error('verifyOTP error:', e);
+        toast('خطا: ' + e.message);
+    }
+};
+
+window.resendOTP = function(){
+    var inp = document.getElementById('otpSingle');
+    if(inp){ inp.value = '123456'; inp.classList.add('filled'); }
+    toast('کد دمو: 123456');
+};
+
+console.log('[OTP-DEMO] فعال شد — کد: 123456');
 
 
 </body>
