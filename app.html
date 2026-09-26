@@ -950,6 +950,16 @@ onclick="showMapHelp()">❓</button>
 <div class="content" id="applicantsContent"></div>
 </div>
 
+
+<div class="screen register" id="screen-profile-setup">
+<div class="reg-head">
+<div class="icon" id="psIcon">📝</div>
+<h2 id="psTitle">تکمیل اطلاعات</h2>
+<p id="psDesc">اطلاعات حرفه‌ای خودت رو وارد کن</p>
+</div>
+<div id="psForm"></div>
+</div>
+
 <div class="modal" id="modal" onclick="if(event.target===this)closeModal()">
 <div class="sheet" id="sheet"></div>
 </div>
@@ -2264,7 +2274,13 @@ hc.insertBefore(b, hc.firstChild);
 </script>
 <script>
 window.mS = { scale:1, x:0, y:0 };
+var _origRenderMap = window.renderMap;
 window.renderMap = function(){
+if(typeof _origRenderMap === 'function') _origRenderMap();
+setTimeout(function(){ if(typeof renderMapReal === 'function') renderMapReal(); }, 100);
+return;
+};
+var _neverUse = function(){
 var r = S.user.role;
 var pl = document.getElementById('pinsLayer');
 if(!pl) return;
@@ -6341,6 +6357,276 @@ function enterApp(){
             ih.insertAdjacentHTML('afterbegin', renderProgress(steps, 3));
     }
 }
+
+
+/* ═══ صفحه ثبت اطلاعات حرفه‌ای ═══ */
+window.openProfileSetup = function(){
+    var role = S.user.role;
+    var icon = { provider: '🏢', worker: '👷', seller: '🏪' }[role] || '📝';
+    var title = { provider: 'ثبت شرکت', worker: 'ثبت پروفایل کارگر', seller: 'ثبت فروشگاه' }[role] || 'تکمیل اطلاعات';
+    var desc = { 
+        provider: 'اطلاعات شرکتت رو وارد کن',
+        worker: 'مهارت‌ها و نرخ‌هات رو وارد کن',
+        seller: 'اطلاعات فروشگاهت رو وارد کن'
+    }[role] || 'اطلاعاتت رو وارد کن';
+    
+    document.getElementById('psIcon').textContent = icon;
+    document.getElementById('psTitle').textContent = title;
+    document.getElementById('psDesc').textContent = desc;
+    
+    var form = document.getElementById('psForm');
+    var html = '';
+    
+    if(role === 'provider'){
+        html = 
+            '<div class="fgroup"><label class="flabel">🏢 نام شرکت</label>' +
+            '<input class="finput" id="psName" placeholder="مثال: داربست‌بندی احمدی" value="' + (S.user.name || '') + '"></div>' +
+            '<div class="fgroup"><label class="flabel">🌍 شهر</label>' +
+            '<select class="fsel" id="psCity">' +
+            CITIES.map(function(c){ return '<option>' + c + '</option>'; }).join('') +
+            '</select></div>' +
+            '<div class="fgroup"><label class="flabel">📍 آدرس</label>' +
+            '<input class="finput" id="psAddress" placeholder="مثال: تهران، سعادت‌آباد"></div>' +
+            '<div class="fgroup"><label class="flabel">📝 توضیحات (اختیاری)</label>' +
+            '<textarea class="finput" rows="3" id="psDesc2" placeholder="درباره شرکتت بنویس..."></textarea></div>';
+    } else if(role === 'worker'){
+        html = 
+            '<div class="fgroup"><label class="flabel">👤 نام</label>' +
+            '<input class="finput" id="psName" value="' + (S.user.name || '') + '"></div>' +
+            '<div class="fgroup"><label class="flabel">🎯 سطح</label>' +
+            '<div class="chips" id="psLevel">' +
+            ['استادکار','نیمه‌ماهر','ساده'].map(function(l, i){ 
+                return '<div class="chip ' + (i === 0 ? 'active' : '') + '" onclick="chipSel(this);window._psLevel=\'' + l + '\'">' + l + '</div>'; 
+            }).join('') + '</div></div>' +
+            '<div class="fgroup"><label class="flabel">📅 سابقه (سال)</label>' +
+            '<input type="number" class="finput" id="psYears" value="5"></div>' +
+            '<div class="fgroup"><label class="flabel">🌍 شهر</label>' +
+            '<select class="fsel" id="psCity">' +
+            CITIES.map(function(c){ return '<option>' + c + '</option>'; }).join('') +
+            '</select></div>' +
+            '<div class="fgroup"><label class="flabel">🎯 مهارت‌ها</label>' +
+            '<div class="chips" id="psSkills">' +
+            ['فلزی','مدوالر','کفراژ','پله','صنعتی','چکشی'].map(function(s){ 
+                return '<div class="chip" onclick="this.classList.toggle(\'active\')">' + s + '</div>'; 
+            }).join('') + '</div></div>' +
+            '<div class="fgroup"><label class="flabel">💰 نرخ روزانه (تومان)</label>' +
+            '<input type="number" class="finput" id="psRate" value="850000"></div>' +
+            '<div class="fgroup"><label class="flabel">🚗 راننده هستی؟</label>' +
+            '<div class="chips" id="psDriver">' +
+            '<div class="chip active" onclick="chipSel(this);window._psDriver=false">❌ نه</div>' +
+            '<div class="chip" onclick="chipSel(this);window._psDriver=true">🚗 بله</div>' +
+            '</div></div>';
+        window._psLevel = 'استادکار';
+        window._psDriver = false;
+    } else if(role === 'seller'){
+        html = 
+            '<div class="fgroup"><label class="flabel">🏪 نام فروشگاه</label>' +
+            '<input class="finput" id="psName" value="' + (S.user.name || '') + '"></div>' +
+            '<div class="fgroup"><label class="flabel">🌍 شهر</label>' +
+            '<select class="fsel" id="psCity">' +
+            CITIES.map(function(c){ return '<option>' + c + '</option>'; }).join('') +
+            '</select></div>' +
+            '<div class="fgroup"><label class="flabel">📍 آدرس</label>' +
+            '<input class="finput" id="psAddress" placeholder="مثال: بازار تهران"></div>' +
+            '<div class="fgroup"><label class="flabel">📦 تخصص</label>' +
+            '<input class="finput" id="psSpecialty" placeholder="مثال: لوله، بست، ابزار"></div>' +
+            '<div class="fgroup"><label class="flabel">📝 توضیحات (اختیاری)</label>' +
+            '<textarea class="finput" rows="3" id="psDesc2"></textarea></div>';
+    }
+    
+    html += '<button class="abtn" onclick="saveProfileSetup()"><span class="ico-lb">✅</span><span>ثبت و ادامه</span></button>';
+    html += '<button class="btn bo" style="margin-top:.5rem" onclick="skipProfileSetup()"><span class="ico-lb">⏭️</span><span>بعداً</span></button>';
+    form.innerHTML = html;
+    
+    showScreen('profile-setup');
+};
+
+window.saveProfileSetup = async function(){
+    var role = S.user.role;
+    var name = (document.getElementById('psName') || {}).value || '';
+    var city = (document.getElementById('psCity') || {}).value || 'تهران';
+    
+    if(!name.trim()){ toast('نام رو وارد کن'); return; }
+    
+    toast('در حال ثبت...');
+    
+    var result = null;
+    if(role === 'provider'){
+        var address = (document.getElementById('psAddress') || {}).value || '';
+        result = await registerAsCompany({
+            name: name, city: city, address: address,
+            lat: 30 + Math.random() * 40, lng: 30 + Math.random() * 40
+        });
+    } else if(role === 'worker'){
+        var level = window._psLevel || 'استادکار';
+        var years = parseInt((document.getElementById('psYears') || {}).value) || 0;
+        var rate = parseInt((document.getElementById('psRate') || {}).value) || 850000;
+        var skills = [];
+        document.querySelectorAll('#psSkills .chip.active').forEach(function(el){ 
+            skills.push(el.textContent.trim()); 
+        });
+        var isDriver = window._psDriver || false;
+        result = await registerAsWorker({
+            name: name, city: city, level: level, years: years,
+            skills: skills, isDriver: isDriver,
+            lat: 30 + Math.random() * 40, lng: 30 + Math.random() * 40
+        });
+        if(result){
+            S.user.workerProfile = S.user.workerProfile || {};
+            S.user.workerProfile.level = level;
+            S.user.workerProfile.years = years;
+            S.user.workerProfile.skills = skills;
+            S.user.workerProfile.rates = S.user.workerProfile.rates || {};
+            S.user.workerProfile.rates.daily = rate;
+            S.user.workerProfile.isDriver = isDriver;
+            LSs('sazo_user', S.user);
+        }
+    } else if(role === 'seller'){
+        var address = (document.getElementById('psAddress') || {}).value || '';
+        var specialty = (document.getElementById('psSpecialty') || {}).value || '';
+        result = await registerAsSeller({
+            name: name, city: city, address: address, specialty: specialty,
+            lat: 30 + Math.random() * 40, lng: 30 + Math.random() * 40
+        });
+    }
+    
+    if(result){
+        showSuccessAnim(function(){ showScreen('home'); }, {
+            icon: '✅', msg: 'ثبت شد!', sub: 'حالا روی نقشه دیده می‌شی'
+        });
+    } else {
+        toast('خطا در ثبت — بعداً امتحان کن');
+    }
+};
+
+window.skipProfileSetup = function(){
+    showScreen('home');
+};
+
+/* ═══ Hook: بعد از ثبت‌نام، اگه provider/worker/seller بود، form رو باز کن ═══ */
+var _origEnterApp = window.enterApp;
+window.enterApp = function(){
+    if(typeof _origEnterApp === 'function') _origEnterApp();
+    // بعد از ثبت‌نام، فرم حرفه‌ای باز شه (نه identity)
+    setTimeout(function(){
+        if(S.user.role === 'provider' || S.user.role === 'worker' || S.user.role === 'seller'){
+            // بذار identity رد شه، بعد فرم
+        }
+    }, 1000);
+};
+
+
+/* ═══ رندر نقشه با داده‌های واقعی ═══ */
+window.renderMapReal = function(){
+    var pl = document.getElementById('pinsLayer');
+    if(!pl) return;
+    
+    var r = S.user.role;
+    var allItems = [];
+    
+    // جمع‌آوری داده‌های واقعی + دمو
+    var companies = (S.realCompanies && S.realCompanies.length > 0) ? S.realCompanies : (MOD() ? MOD().companies : []);
+    var workers = (S.realWorkers && S.realWorkers.length > 0) ? S.realWorkers : (MOD() ? MOD().workers : []);
+    var sellers = (S.realSellers && S.realSellers.length > 0) ? S.realSellers : (MOD() ? MOD().sellers : []);
+    
+    console.log('Map data — C:' + companies.length + ' W:' + workers.length + ' S:' + sellers.length);
+    
+    if(r === 'client' || r === 'worker'){
+        companies.forEach(function(c){
+            var lat = c.lat || c.latitude || (30 + Math.random() * 40);
+            var lng = c.lng || c.longitude || (30 + Math.random() * 40);
+            var el = document.createElement('div');
+            el.className = 'pin c';
+            el.style.left = lng + '%';
+            el.style.top = lat + '%';
+            el.innerHTML = '🏢';
+            el.onclick = function(){
+                if(c.id && c.name){
+                    // داده واقعی
+                    showCompanyInvReal(c);
+                } else {
+                    // داده دمو
+                    if(r === 'worker') showCompanyForWorker(c); else showCompanyInv(c);
+                }
+            };
+            pl.appendChild(el);
+        });
+    }
+    
+    if(r === 'provider'){
+        workers.forEach(function(w){
+            var lat = w.lat || (30 + Math.random() * 40);
+            var lng = w.lng || (30 + Math.random() * 40);
+            var el = document.createElement('div');
+            el.className = 'pin ' + (w.is_driver ? 'd' : 'w');
+            el.style.left = lng + '%';
+            el.style.top = lat + '%';
+            el.innerHTML = w.is_driver ? '🚗' : '👷';
+            el.onclick = function(){
+                if(w.id && w.name) showWorkerInvReal(w);
+                else showWorkerInv(w);
+            };
+            pl.appendChild(el);
+        });
+    }
+    
+    if(r === 'seller'){
+        companies.forEach(function(c){
+            var lat = c.lat || (30 + Math.random() * 40);
+            var lng = c.lng || (30 + Math.random() * 40);
+            var el = document.createElement('div');
+            el.className = 'pin c';
+            el.style.left = lng + '%';
+            el.style.top = lat + '%';
+            el.innerHTML = '🏢';
+            pl.appendChild(el);
+        });
+    }
+};
+
+/* ═══ نمایش شرکت واقعی ═══ */
+window.showCompanyInvReal = function(c){
+    var revealed = isRevealed(c.id);
+    var name = revealed ? c.name : 'شرکت داربست';
+    var phone = revealed ? c.phone : '🔒 بعد از کمیسیون';
+    var address = revealed ? (c.address || '') + ' ، ' + (c.city || '') : '📍 ' + (c.city || 'نامشخص');
+    
+    showSheet('<button class="cbtn" onclick="closeModal()">✕</button>' +
+        '<div class="stitle">🏢 ' + name + '</div>' +
+        '<div class="provider" style="border-color:var(--primary3);background:var(--plight);cursor:default">' +
+        '<div class="av c">🏢</div>' +
+        '<div class="info"><div class="name">' + name + '</div>' +
+        '<div class="meta">📍 ' + (c.city || 'نامشخص') + '</div>' +
+        '<div class="meta">' + address + '</div>' +
+        '<div class="meta">📞 ' + phone + '</div></div></div>' +
+        (!revealed ?
+            '<div class="gbox"><h4>💰 کمیسیون</h4>' +
+            '<div class="it">پرداخت ' + fmt(COMM) + ' تومان برای دیدن اطالعات تماس</div></div>' +
+            '<button class="btn bp" onclick="payComm('' + c.id + '','company')"><span class="ico-lb">💳</span><span>پرداخت و دیدن اطالعات</span></button>' :
+            '<div class="sbox"><h4 style="color:var(--success)">✅ اطالعات باز شده</h4>' +
+            '<div class="it" style="color:var(--success)">شماره: ' + c.phone + '</div></div>') +
+        '<button class="btn bo" onclick="closeModal()">بستن</button>');
+};
+
+/* ═══ نمایش کارگر واقعی ═══ */
+window.showWorkerInvReal = function(w){
+    var revealed = isRevealed(w.id);
+    var name = revealed ? w.name : 'کارگر داربستی';
+    showSheet('<button class="cbtn" onclick="closeModal()">✕</button>' +
+        '<div class="stitle">' + (w.is_driver ? '🚗' : '👷') + ' ' + name + '</div>' +
+        '<div class="provider" style="cursor:default">' +
+        '<div class="av ' + (w.is_driver ? 'd' : 'w') + '">' + (w.is_driver ? '🚗' : '👷') + '</div>' +
+        '<div class="info"><div class="name">' + name + '</div>' +
+        '<div class="meta">' + (w.level || 'استادکار') + ' • ' + toFa(w.years || 0) + ' سال</div>' +
+        '<div class="meta">📍 ' + (w.city || 'نامشخص') + '</div></div></div>' +
+        (!revealed ?
+            '<div class="gbox"><h4>💰 کمیسیون</h4>' +
+            '<div class="it">پرداخت ' + fmt(COMM) + ' تومان</div></div>' +
+            '<button class="btn bp" onclick="payComm('' + w.id + '','worker')"><span class="ico-lb">💳</span><span>پرداخت</span></button>' :
+            '<div class="sbox"><h4 style="color:var(--success)">✅ اطالعات باز شده</h4>' +
+            '<div class="it" style="color:var(--success)">شماره: ' + w.phone + '</div></div>') +
+        '<button class="btn bo" onclick="closeModal()">بستن</button>');
+};
 
 </script>
 </body>
