@@ -1,7 +1,48 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
+<script>
+/* ═══ Auto-Reload وقتی نسخه جدید اومد ═══ */
+(function(){
+    var CURRENT_VERSION = Date.now(); // ← هر بار کد جدید، این عوض می‌شه
+    var VERSION_KEY = 'sazo_loaded_version';
+    
+    // اگه نسخه‌ی جدید اومد، رفرش کن
+    var storedVersion = localStorage.getItem(VERSION_KEY);
+    if(storedVersion && storedVersion !== String(CURRENT_VERSION)){
+        // یه بار رفرش کن
+        localStorage.setItem(VERSION_KEY, String(CURRENT_VERSION));
+        var url = window.location.href.split('?')[0].split('#')[0];
+        window.location.replace(url + '?v=' + CURRENT_VERSION);
+        return;
+    }
+    localStorage.setItem(VERSION_KEY, String(CURRENT_VERSION));
+    
+    // چک دوره‌ای که آیا فایل جدید هست
+    setInterval(function(){
+        fetch(window.location.pathname + '?_=' + Date.now(), { method: 'HEAD', cache: 'no-store' })
+            .then(function(r){
+                var lastMod = r.headers.get('last-modified');
+                if(lastMod){
+                    var stored = localStorage.getItem('sazo_last_modified');
+                    if(stored && stored !== lastMod){
+                        localStorage.setItem('sazo_last_modified', lastMod);
+                        location.reload(true);
+                    } else if(!stored){
+                        localStorage.setItem('sazo_last_modified', lastMod);
+                    }
+                }
+            })
+            .catch(function(){});
+    }, 60000); // هر ۶۰ ثانیه
+})();
+</script>
+
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
 <meta name="theme-color" content="#1E3A8A">
 <title>سازو داربست</title>
@@ -665,7 +706,7 @@ style="text-align:center;direction:ltr;font-family:monospace">
 <p id="otpDisplay">کد فرستاده شد</p>
 </div>
 <div class="otp-single">
-<input type="tel" id="otpSingle" maxlength="6" inputmode="numeric" pattern="[0-9]{6}" dir="ltr" autocomplete="one-time-code" placeholder="- - - - - -" style="width:100%;max-width:20rem;padding:.9rem;font-size:1.6rem;font-weight:900;letter-spacing:.8rem;text-align:center;direction:ltr;border:.15rem solid var(--border);border-radius:.7rem;background:var(--card);font-family:monospace">
+<input type="text" id="otpSingle" maxlength="6" inputmode="numeric" pattern="[0-9]*" dir="ltr" autocomplete="one-time-code" name="one-time-code" placeholder="- - - - - -" style="width:100%;max-width:20rem;padding:1rem;font-size:1.8rem;font-weight:900;letter-spacing:.8rem;text-align:center;direction:ltr;border:.15rem solid var(--border);border-radius:.7rem;background:var(--card);font-family:monospace">
 </div>
 <div class="gbox">
 <div class="it">فقط روی تایید بزن — کد خودکار پر شده</div>
